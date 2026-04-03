@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from threading import Event, Thread
 
@@ -12,6 +13,22 @@ from inkypal.network import get_local_ip
 from inkypal.render import DEFAULT_MESSAGE, DEFAULT_ROTATION
 
 IDLE_ANIMATION_SECONDS = 10
+
+
+def get_configured_port() -> int:
+    value = os.getenv("INKYPAL_PORT")
+    if not value:
+        return 0
+
+    try:
+        port = int(value)
+    except ValueError as error:
+        raise ValueError("INKYPAL_PORT must be an integer") from error
+
+    if not (1 <= port <= 65535):
+        raise ValueError("INKYPAL_PORT must be between 1 and 65535")
+
+    return port
 
 
 def run_idle_loop(controller: DisplayController, stop_event: Event) -> None:
@@ -27,6 +44,7 @@ def main() -> int:
     from inkypal.waveshare_v4 import EPD
 
     host = get_local_ip()
+    port = get_configured_port()
     epd = EPD()
     controller = DisplayController(
         epd=epd,
@@ -39,7 +57,7 @@ def main() -> int:
         ),
     )
 
-    server = make_server(controller)
+    server = make_server(controller, port=port)
     controller.state.port = server.server_address[1]
     stop_event = Event()
     idle_thread = Thread(target=run_idle_loop, args=(controller, stop_event), daemon=True)

@@ -56,6 +56,8 @@ Wants=network-online.target
 Type=simple
 User=%i
 WorkingDirectory=/home/%i/inkypal
+# Optional: set a fixed API port instead of a random one.
+# Environment=INKYPAL_PORT=8080
 ExecStart=/usr/bin/python3 -u -m inkypal
 Restart=always
 RestartSec=3
@@ -92,7 +94,9 @@ sudo journalctl -u inkypal@$(whoami).service -n 20 --no-pager
 
 ## API
 
-When `InkyPal` starts, it listens on a random local port, shows the IP and port on the display, and is meant to be controlled through the API.
+When `InkyPal` starts, it listens on a random local port by default, shows the IP and port on the display, and is meant to be controlled through the API.
+
+If `INKYPAL_PORT` is set in the service environment, that port is used instead of a random one.
 
 ### GET /
 
