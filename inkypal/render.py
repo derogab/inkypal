@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
+import textwrap
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -12,6 +14,14 @@ DISPLAY_IMAGE_SIZE = (250, 122)
 DEFAULT_MESSAGE = ""
 DEFAULT_ROTATION = 180
 FACE_SCALE = 3
+FACE_FONT_SIZE = 8
+MESSAGE_AREA_TOP = 60
+MESSAGE_AREA_BOTTOM = 102
+MESSAGE_MAX_LINES = 2
+MESSAGE_HORIZONTAL_MARGIN = 12
+FOOTER_Y = 112
+MESSAGE_FONT_SIZE = 16
+MESSAGE_SCALE = 1
 
 FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
@@ -19,13 +29,16 @@ FONT_CANDIDATES = [
 ]
 
 
-def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+def load_font(
+    size: int,
+    candidates: list[str] | tuple[str, ...] = FONT_CANDIDATES,
+) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     """Load a readable monospace font, with a safe fallback."""
-    for candidate in FONT_CANDIDATES:
+    for candidate in candidates:
         path = Path(candidate)
         if path.exists():
             return ImageFont.truetype(str(path), size=size)
-    return ImageFont.load_default()
+    return ImageFont.load_default(size=size)
 
 
 def render_face_image(
@@ -39,19 +52,27 @@ def render_face_image(
     image = Image.new("1", DISPLAY_IMAGE_SIZE, 255)
     draw = ImageDraw.Draw(image)
 
-    face_font = load_font(24)
-    body_font = load_font(14)
-    small_font = load_font(11)
+    face_font = load_font(FACE_FONT_SIZE)
+    small_font = load_font(10)
 
-    face_y = 18 if not message else 8
+    face_y = 12
     draw_scaled_centered(image, face_text, face_font, y=face_y, scale=FACE_SCALE)
     if message:
-        draw_centered(draw, message, body_font, y=74)
-        draw_bottom_left(draw, f"{host}:{port}", small_font, y=108)
-        draw_bottom_right(draw, f"v{__version__}", small_font, y=108)
+        draw_message_centered(
+            image,
+            message,
+            load_font(MESSAGE_FONT_SIZE),
+            top=MESSAGE_AREA_TOP,
+            bottom=MESSAGE_AREA_BOTTOM,
+            max_width=DISPLAY_IMAGE_SIZE[0] - (MESSAGE_HORIZONTAL_MARGIN * 2),
+            max_lines=MESSAGE_MAX_LINES,
+            scale=MESSAGE_SCALE,
+        )
+        draw_bottom_left(draw, f"{host}:{port}", small_font, y=FOOTER_Y)
+        draw_bottom_right(draw, f"v{__version__}", small_font, y=FOOTER_Y)
     else:
-        draw_bottom_left(draw, f"{host}:{port}", small_font, y=108)
-        draw_bottom_right(draw, f"v{__version__}", small_font, y=108)
+        draw_bottom_left(draw, f"{host}:{port}", small_font, y=FOOTER_Y)
+        draw_bottom_right(draw, f"v{__version__}", small_font, y=FOOTER_Y)
 
     return image.rotate(rotation)
 
@@ -67,6 +88,83 @@ def draw_centered(
     width = right - left
     x = (DISPLAY_IMAGE_SIZE[0] - width) // 2
     draw.text((x, y - top), text, font=font, fill=0)
+
+
+def draw_message_centered(
+    image: Image.Image,
+    text: str,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    top: int,
+    bottom: int,
+    max_width: int,
+    max_lines: int,
+    scale: int,
+    line_spacing: int = 0,
+) -> None:
+    """Draw wrapped message text inside a fixed vertical area."""
+    draw = ImageDraw.Draw(image)
+    wrapped = wrap_message(
+        text,
+        draw,
+        font,
+        max_width=max_width,
+        max_lines=max_lines,
+        scale=scale,
+    )
+    left, text_top, right, text_bottom = draw.multiline_textbbox(
+        (0, 0), wrapped, font=font, spacing=line_spacing, align="center"
+    )
+    width = max(1, math.ceil(right - left))
+    height = max(1, math.ceil(text_bottom - text_top))
+    mask = Image.new("1", (width, height), 255)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.multiline_text(
+        (-left, -text_top),
+        wrapped,
+        font=font,
+        fill=0,
+        spacing=line_spacing,
+        align="center",
+    )
+    scaled = mask.resize((width * scale, height * scale), Image.Resampling.NEAREST)
+    x = int((DISPLAY_IMAGE_SIZE[0] - scaled.width) // 2)
+    y = int(top + max(0, ((bottom - top) - scaled.height) // 2))
+    image.paste(scaled, (x, y))
+
+
+def wrap_message(
+    text: str,
+    draw: ImageDraw.ImageDraw,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    max_width: int,
+    max_lines: int,
+    scale: int,
+) -> str:
+    """Wrap and clamp a message to a small number of monospace lines."""
+    char_left, _, char_right, _ = draw.textbbox((0, 0), "M", font=font)
+    char_width = max(1, char_right - char_left)
+    max_chars = max(1, max_width // (char_width * scale))
+    lines = textwrap.wrap(
+        text,
+        width=max_chars,
+        break_long_words=True,
+        break_on_hyphens=False,
+    ) or [""]
+
+    if len(lines) > max_lines:
+        remaining = " ".join(lines[max_lines - 1 :])
+        lines = lines[: max_lines - 1] + [ellipsize_text(remaining, max_chars)]
+
+    return "\n".join(lines)
+
+
+def ellipsize_text(text: str, max_chars: int) -> str:
+    """Trim text to fit a fixed character width."""
+    if len(text) <= max_chars:
+        return text
+    if max_chars <= 1:
+        return text[:max_chars]
+    return text[: max_chars - 1] + "…"
 
 
 def draw_bottom_left(
