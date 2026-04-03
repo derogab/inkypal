@@ -43,10 +43,26 @@ In `raspi-config`, enable:
 
 `InkyPal` is designed to run as a `systemd` service so it starts automatically on boot and stays running.
 
-Copy the service file:
+Create the service file:
 
 ```bash
-sudo cp systemd/inkypal@.service /etc/systemd/system/inkypal@.service
+sudo tee /etc/systemd/system/inkypal@.service >/dev/null <<'EOF'
+[Unit]
+Description=InkyPal smart companion bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/inkypal
+ExecStart=/usr/bin/python3 -u -m inkypal
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
 ```
 
 Enable and start it for your username:
