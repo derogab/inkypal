@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from threading import Lock
+from threading import RLock
+from time import monotonic
 
 from PIL import Image
 
-from inkypal.faces import resolve_face
+from inkypal.faces import IDLE_FACES, resolve_face
 from inkypal.render import render_face_image
+
+FACE_OVERRIDE_SECONDS = 60
 
 
 @dataclass
@@ -28,8 +31,15 @@ class DisplayController:
     def __init__(self, epd, state: DisplayState) -> None:
         self._epd = epd
         self._state = state
-        self._lock = Lock()
+        self._lock = RLock()
         self._ready_for_partial = False
+        self._powered_off = False
+        self._face_override_until: float | None = None
+        self._idle_faces = IDLE_FACES
+        self._idle_index = 0
+
+        if state.face in self._idle_faces:
+            self._idle_index = (self._idle_faces.index(state.face) + 1) % len(self._idle_faces)
 
     @property
     def state(self) -> DisplayState:
@@ -64,22 +74,52 @@ class DisplayController:
         face: str | None = None,
         message: str | None = None,
     ) -> DisplayState:
-        if face is not None:
-            face_name, _ = resolve_face(face)
-            self._state.face = face_name
-        if message is not None:
-            self._state.message = message
-        self._render(self._state, partial=self._ready_for_partial)
-        return self._state
+        with self._lock:
+            if face is not None:
+                face_name, _ = resolve_face(face)
+                self._state.face = face_name
+                if face_name in self._idle_faces:
+                    self._idle_index = (self._idle_faces.index(face_name) + 1) % len(self._idle_faces)
+                    self._face_override_until = None
+                else:
+                    self._face_override_until = monotonic() + FACE_OVERRIDE_SECONDS
+
+            if message is not None:
+                self._state.message = message
+
+            self._powered_off = False
+            self._render(self._state, partial=self._ready_for_partial)
+            return self._state
+
+    def animate(self) -> None:
+        with self._lock:
+            if self._powered_off:
+                return
+
+            if self._face_override_until is not None:
+                if monotonic() < self._face_override_until:
+                    return
+                self._face_override_until = None
+
+            next_face = self._idle_faces[self._idle_index]
+            self._idle_index = (self._idle_index + 1) % len(self._idle_faces)
+
+            if self._state.face == next_face:
+                return
+
+            self._state.face = next_face
+            self._render(self._state, partial=self._ready_for_partial)
 
     def shutdown(self) -> None:
         with self._lock:
             self._epd.sleep()
             self._ready_for_partial = False
+            self._powered_off = False
 
     def power_off(self) -> DisplayState:
         blank_buffer = self._blank_buffer()
         with self._lock:
+            self._powered_off = True
             if not self._ready_for_partial:
                 self._epd.init()
                 self._epd.display_part_base_image(blank_buffer)

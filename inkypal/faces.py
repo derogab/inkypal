@@ -1,6 +1,9 @@
 """Built-in text faces for the display."""
 
 FACES = {
+    "look_left": "(O_o)",
+    "look_center": "(o_o)",
+    "look_right": "(o_O)",
     "happy": "(o_o)",
     "alert": "(O_O)",
     "sleepy": "(-_-)",
@@ -12,6 +15,8 @@ FACES = {
     "cool": "(B_B)",
     "angry": "(>_<)",
 }
+
+IDLE_FACES = ("look_left", "look_center", "look_right")
 
 
 def list_faces() -> list[str]:

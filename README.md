@@ -139,7 +139,7 @@ curl -X POST http://PI_IP:PORT/render \
 
 ### POST /off
 
-Clears the display to white and keeps the running service ready for the next API update.
+Clears the display to white and pauses the idle animation until the next `POST /render` update.
 
 Example:
 
@@ -165,17 +165,17 @@ python3 -m compileall inkypal
 
 _InkyPal_ is made with ♥ by [derogab](https://github.com/derogab) and it's released under the [GPL-3.0 license](./LICENSE).
 
-### Contributors
+## Contributors
 
 <a href="https://github.com/derogab/inkypal/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=derogab/inkypal" />
 </a>
 
-### Tip
+## Tip
 If you like this project or directly benefit from it, please consider buying me a coffee:  
 🔗 `bc1qd0qatgz8h62uvnr74utwncc6j5ckfz2v2g4lef`  
 ⚡️ `derogab@sats.mobi`  
 💶 [Sponsor on GitHub](https://github.com/sponsors/derogab)
 
-### Stargazers over time
+## Stargazers over time
 [![Stargazers over time](https://starchart.cc/derogab/inkypal.svg?variant=adaptive)](https://starchart.cc/derogab/inkypal)
