@@ -9,12 +9,6 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 - Raspberry Pi Zero 2 W H (SPI enabled on Raspberry Pi OS)
 - Waveshare 2.13 inch e-Paper Display V4
 
-## References
-
-- [Waveshare official e-Paper repository](https://github.com/waveshareteam/e-Paper)
-- [Upstream `epd2in13_V4.py` driver](https://github.com/waveshareteam/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd2in13_V4.py)
-- [Waveshare 2.13inch e-Paper HAT (G) Manual](https://www.waveshare.com/wiki/2.13inch_e-Paper_HAT_(G)_Manual)
-
 ## Setup
 
 Clone the project into `~/inkypal`:
@@ -161,8 +155,30 @@ Quick local syntax check:
 python3 -m compileall inkypal
 ```
 
-## License
+## References
 
-This repository is licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later).
+- [Waveshare official e-Paper repository](https://github.com/waveshareteam/e-Paper)
+- [Upstream `epd2in13_V4.py` driver](https://github.com/waveshareteam/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd2in13_V4.py)
+- [Waveshare 2.13inch e-Paper HAT (G) Manual](https://www.waveshare.com/wiki/2.13inch_e-Paper_HAT_(G)_Manual)
 
-`inkypal/waveshare_v4.py` includes code adapted from Waveshare's MIT-licensed Python driver for the 2.13 inch e-Paper V4 display.
+## Credits
+
+_InkyPal_ is made with ♥ by [derogab](https://github.com/derogab) and it's released under the [GPL-3.0 license](./LICENSE).
+
+### Contributors
+
+<a href="https://github.com/derogab/inkypal/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=derogab/inkypal" />
+</a>
+
+### Tip
+If you like this project or directly benefit from it, please consider buying me a coffee:  
+🔗 `bc1qd0qatgz8h62uvnr74utwncc6j5ckfz2v2g4lef`  
+⚡️ `derogab@sats.mobi`  
+💶 [Sponsor on GitHub](https://github.com/sponsors/derogab)
+
+### Stargazers over time
+[![Stargazers over time](https://starchart.cc/derogab/inkypal.svg?variant=adaptive)](https://starchart.cc/derogab/inkypal)
+
+
+
