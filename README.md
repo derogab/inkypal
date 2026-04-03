@@ -179,6 +179,3 @@ If you like this project or directly benefit from it, please consider buying me 
 
 ### Stargazers over time
 [![Stargazers over time](https://starchart.cc/derogab/inkypal.svg?variant=adaptive)](https://starchart.cc/derogab/inkypal)
-
-
-

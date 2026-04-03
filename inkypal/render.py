@@ -6,6 +6,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+from inkypal import __version__
+
 DISPLAY_IMAGE_SIZE = (250, 122)
 DEFAULT_MESSAGE = ""
 DEFAULT_ROTATION = 180
@@ -45,9 +47,11 @@ def render_face_image(
     draw_scaled_centered(image, face_text, face_font, y=face_y, scale=FACE_SCALE)
     if message:
         draw_centered(draw, message, body_font, y=74)
-        draw_centered(draw, f"{host}:{port}", small_font, y=96)
+        draw_bottom_left(draw, f"{host}:{port}", small_font, y=108)
+        draw_bottom_right(draw, f"v{__version__}", small_font, y=108)
     else:
-        draw_centered(draw, f"{host}:{port}", small_font, y=100)
+        draw_bottom_left(draw, f"{host}:{port}", small_font, y=108)
+        draw_bottom_right(draw, f"v{__version__}", small_font, y=108)
 
     return image.rotate(rotation)
 
@@ -62,6 +66,32 @@ def draw_centered(
     left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
     width = right - left
     x = (DISPLAY_IMAGE_SIZE[0] - width) // 2
+    draw.text((x, y - top), text, font=font, fill=0)
+
+
+def draw_bottom_left(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    y: int,
+    margin: int = 6,
+) -> None:
+    """Draw a single line aligned to the lower left area."""
+    _, top, _, _ = draw.textbbox((0, 0), text, font=font)
+    draw.text((margin, y - top), text, font=font, fill=0)
+
+
+def draw_bottom_right(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    y: int,
+    margin: int = 6,
+) -> None:
+    """Draw a single line aligned to the lower right area."""
+    left, top, right, _ = draw.textbbox((0, 0), text, font=font)
+    width = right - left
+    x = DISPLAY_IMAGE_SIZE[0] - width - margin
     draw.text((x, y - top), text, font=font, fill=0)
 
 
