@@ -1,0 +1,37 @@
+[project]
+name = "inkypal"
+version = "0.1.0"
+description = "A tiny smart companion on e-ink"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+  { name = "derogab" },
+]
+keywords = ["e-paper", "eink", "raspberry-pi", "waveshare", "companion-bot"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Embedded Systems",
+  "Topic :: System :: Hardware :: Hardware Drivers",
+]
+dependencies = [
+  "Pillow>=10,<12",
+  "gpiozero>=2,<3",
+  "spidev>=3.6,<4",
+]
+
+[project.urls]
+Homepage = "https://github.com/derogab/inkypal"
+Issues = "https://github.com/derogab/inkypal/issues"
+
+[project.scripts]
+inkypal = "inkypal.app:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
