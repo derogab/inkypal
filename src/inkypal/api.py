@@ -8,6 +8,39 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from inkypal.faces import list_faces
 
+ROOT_ENDPOINTS = [
+    {
+        "method": "GET",
+        "path": "/",
+        "description": "API index and runtime summary",
+    },
+    {
+        "method": "GET",
+        "path": "/health",
+        "description": "Health state of the running service",
+    },
+    {
+        "method": "GET",
+        "path": "/status",
+        "description": "Current companion state",
+    },
+    {
+        "method": "GET",
+        "path": "/faces",
+        "description": "Available built-in face names",
+    },
+    {
+        "method": "POST",
+        "path": "/render",
+        "description": "Update the displayed face and/or message",
+    },
+    {
+        "method": "POST",
+        "path": "/off",
+        "description": "Clear the display to white and pause idle animation",
+    },
+]
+
 
 def make_server(controller, host: str = "0.0.0.0", port: int = 0) -> ThreadingHTTPServer:
     """Create an API server bound to a random port by default."""
@@ -20,6 +53,18 @@ def make_server(controller, host: str = "0.0.0.0", port: int = 0) -> ThreadingHT
 
             if self.path == "/health":
                 self._send_json(HTTPStatus.OK, controller.health_payload())
+                return
+
+            if self.path == "/":
+                self._send_json(
+                    HTTPStatus.OK,
+                    {
+                        "running": True,
+                        "ip": controller.state.host,
+                        "port": controller.state.port,
+                        "endpoints": ROOT_ENDPOINTS,
+                    },
+                )
                 return
 
             if self.path == "/faces":

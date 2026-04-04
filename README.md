@@ -100,7 +100,7 @@ If `INKYPAL_PORT` is set in the service environment, that port is used instead o
 
 ### GET /
 
-Returns the current companion state.
+Returns a small API index with `running: true` and the list of available endpoints.
 
 Example:
 
