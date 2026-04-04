@@ -11,24 +11,17 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 
 ## Setup
 
-Clone the project into `~/inkypal`:
+Download the latest release binary for your system:
 
 ```bash
-git clone <your-repo-url> ~/inkypal
-cd ~/inkypal
+curl -L -o inkypal <release-binary-url>
 ```
 
-Install the Python dependencies with `requirements.txt`:
+Install it to `/usr/local/bin`:
 
 ```bash
-python3 -m pip install -r requirements.txt
-```
-
-If you prefer Raspberry Pi OS packages, you can also install:
-
-```bash
-sudo apt update
-sudo apt install python3-pil python3-gpiozero python3-spidev
+chmod +x inkypal
+sudo mv inkypal /usr/local/bin/inkypal
 ```
 
 You also need to enable the Raspberry Pi SPI interface for the display:
@@ -55,11 +48,9 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=%i
-WorkingDirectory=/home/%i/inkypal
-Environment=PYTHONPATH=/home/%i/inkypal/src
 # Optional: set a fixed API port instead of a random one.
 # Environment=INKYPAL_PORT=8080
-ExecStart=/usr/bin/python3 -u -m inkypal
+ExecStart=/usr/local/bin/inkypal
 Restart=always
 RestartSec=3
 
@@ -169,6 +160,19 @@ curl -X POST http://PI_IP:PORT/off
 ```
 
 ## Development
+
+- Local source checkout:
+
+```bash
+git clone https://github.com/derogab/inkypal ~/inkypal
+cd ~/inkypal
+```
+
+- Install Python dependencies:
+
+```bash
+python3 -m pip install -r requirements.txt
+```
 
 - Source code: `src/inkypal/`
 - Tests: `tests/`
