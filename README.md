@@ -206,6 +206,10 @@ PYTHONPATH=src python3 -m unittest discover -s tests
 - [Upstream `epdconfig.py` driver support module](https://github.com/waveshareteam/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epdconfig.py)
 - [Waveshare 2.13inch e-Paper HAT (G) Manual](https://www.waveshare.com/wiki/2.13inch_e-Paper_HAT_(G)_Manual)
 
+## Inspiration
+
+Even though InkyPal is a much smaller project with a different goal, it is inspired by [pwnagotchi](https://github.com/evilsocket/pwnagotchi).
+
 ## Credits
 
 _InkyPal_ is made with ♥ by [derogab](https://github.com/derogab) and it's released under the [GPL-3.0 license](./LICENSE).
