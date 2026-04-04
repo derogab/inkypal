@@ -138,28 +138,28 @@ Example:
 curl http://PI_IP:PORT/faces
 ```
 
-### POST /render
+### POST /message
 
 Updates the companion display.
 
 JSON body fields:
 
 - `face` - optional built-in face name
-- `message` - optional message shown below the face
+- `content` - optional message shown below the face
 
 Unknown built-in face names return `400`. Use `GET /faces` as the source of truth for the current built-in list.
 
 Example with a built-in face:
 
 ```bash
-curl -X POST http://PI_IP:PORT/render \
+curl -X POST http://PI_IP:PORT/message \
   -H 'Content-Type: application/json' \
-  -d '{"face":"alert","message":"API update"}'
+  -d '{"face":"alert","content":"API update"}'
 ```
 
 ### POST /off
 
-Clears the display to white and pauses the idle animation until the next `POST /render` update.
+Clears the display to white and pauses the idle animation until the next `POST /message` update.
 
 Example:
 

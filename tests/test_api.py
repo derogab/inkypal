@@ -62,3 +62,38 @@ class ApiTests(TestCase):
         self.assertTrue(payload["running"])
         self.assertEqual(payload["port"], controller.state.port)
         self.assertEqual(payload["endpoints"], ROOT_ENDPOINTS)
+
+    def test_message_endpoint_updates_face_and_content(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/message",
+                data=json.dumps({"face": "love", "content": "Text Example"}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(payload["face"], "love")
+        self.assertEqual(payload["message"], "Text Example")

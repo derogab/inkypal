@@ -31,8 +31,8 @@ ROOT_ENDPOINTS = [
     },
     {
         "method": "POST",
-        "path": "/render",
-        "description": "Update the displayed face and/or message",
+        "path": "/message",
+        "description": "Update the displayed face and/or content",
     },
     {
         "method": "POST",
@@ -87,7 +87,7 @@ def make_server(controller, host: str = "0.0.0.0", port: int = 0) -> ThreadingHT
                 )
                 return
 
-            if self.path != "/render":
+            if self.path != "/message":
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
                 return
 
@@ -97,12 +97,12 @@ def make_server(controller, host: str = "0.0.0.0", port: int = 0) -> ThreadingHT
                 return
 
             face = payload.get("face")
-            message = payload.get("message")
-            if face is None and message is None:
+            content = payload.get("content")
+            if face is None and content is None:
                 self._send_json(HTTPStatus.OK, controller.status_payload())
                 return
             try:
-                controller.update(face=face, message=message)
+                controller.update(face=face, message=content)
             except ValueError as error:
                 self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
                 return
