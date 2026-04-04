@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from threading import RLock
 from time import monotonic
 
 from PIL import Image
 
+from inkypal.config import FACE_OVERRIDE_SECONDS
 from inkypal.faces import IDLE_FACES, resolve_face
 from inkypal.render import render_face_image
-
-FACE_OVERRIDE_SECONDS = 60
 
 
 @dataclass
@@ -28,14 +28,24 @@ class DisplayState:
 class DisplayController:
     """Thread-safe wrapper for rendering updates to the panel."""
 
-    def __init__(self, epd, state: DisplayState) -> None:
+    def __init__(
+        self,
+        epd,
+        state: DisplayState,
+        *,
+        now: Callable[[], float] = monotonic,
+        idle_faces: Sequence[str] = IDLE_FACES,
+        face_override_seconds: int = FACE_OVERRIDE_SECONDS,
+    ) -> None:
         self._epd = epd
         self._state = state
         self._lock = RLock()
         self._ready_for_partial = False
         self._powered_off = False
         self._face_override_until: float | None = None
-        self._idle_faces = IDLE_FACES
+        self._now = now
+        self._idle_faces = tuple(idle_faces)
+        self._face_override_seconds = face_override_seconds
         self._idle_index = 0
 
         if state.face in self._idle_faces:
@@ -82,7 +92,7 @@ class DisplayController:
                     self._idle_index = (self._idle_faces.index(face_name) + 1) % len(self._idle_faces)
                     self._face_override_until = None
                 else:
-                    self._face_override_until = monotonic() + FACE_OVERRIDE_SECONDS
+                    self._face_override_until = self._now() + self._face_override_seconds
 
             if message is not None:
                 self._state.message = message
@@ -97,7 +107,7 @@ class DisplayController:
                 return
 
             if self._face_override_until is not None:
-                if monotonic() < self._face_override_until:
+                if self._now() < self._face_override_until:
                     return
                 self._face_override_until = None
 

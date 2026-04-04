@@ -32,6 +32,12 @@ Issues = "https://github.com/derogab/inkypal/issues"
 [project.scripts]
 inkypal = "inkypal.app:main"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

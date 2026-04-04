@@ -56,6 +56,7 @@ Wants=network-online.target
 Type=simple
 User=%i
 WorkingDirectory=/home/%i/inkypal
+Environment=PYTHONPATH=/home/%i/inkypal/src
 # Optional: set a fixed API port instead of a random one.
 # Environment=INKYPAL_PORT=8080
 ExecStart=/usr/bin/python3 -u -m inkypal
@@ -169,10 +170,19 @@ curl -X POST http://PI_IP:PORT/off
 
 ## Development
 
+- Source code: `src/inkypal/`
+- Tests: `tests/`
+
 Quick local syntax check:
 
 ```bash
-python3 -m compileall inkypal
+python3 -m compileall src/inkypal tests
+```
+
+Run the test suite:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests
 ```
 
 ## References

@@ -21,7 +21,10 @@ Do not duplicate user-facing documentation from `README.md`.
 
 ## Verification
 
-- Syntax check: `python3 -m compileall inkypal`
+- Syntax check: `python3 -m compileall src/inkypal tests`
+- Tests: `PYTHONPATH=src python3 -m unittest discover -s tests`
+- Agents MUST run the test suite after every code change.
+- When behavior changes, agents MUST update or add tests as needed.
 
 ## Runtime model
 
