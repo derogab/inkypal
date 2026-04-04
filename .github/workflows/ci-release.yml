@@ -70,17 +70,24 @@ jobs:
           mkdir -p dist
           docker run --rm --platform "${{ matrix.platform }}" \
             -v "$PWD:/work" -w /work \
-            python:3.13-bookworm bash -lc '
+            debian:trixie bash -lc '
               apt-get update &&
-              apt-get install -y gcc &&
-              python -m pip install --upgrade pip &&
-              python -m pip install -r requirements.txt pyinstaller &&
-              pyinstaller \
+              apt-get install -y \
+                gcc \
+                python3 \
+                python3-pyinstaller \
+                python3-pil \
+                python3-gpiozero \
+                python3-spidev \
+                python3-lgpio &&
+              python3 -m PyInstaller \
                 --clean \
                 --onefile \
                 --name inkypal \
                 --paths src \
                 --collect-submodules gpiozero.pins \
+                --collect-data jaraco.text \
+                --hidden-import lgpio \
                 src/inkypal/__main__.py &&
               cp dist/inkypal /work/dist/${{ matrix.artifact_name }}
             '
