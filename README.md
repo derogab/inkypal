@@ -36,6 +36,15 @@ In `raspi-config`, enable:
 
 `InkyPal` is designed to run as a `systemd` service so it starts automatically on boot and stays running.
 
+Create `/etc/inkypal.env`:
+
+```bash
+sudo tee /etc/inkypal.env >/dev/null <<'EOF'
+# Optional: set a fixed API port instead of a random one.
+# INKYPAL_PORT=8080
+EOF
+```
+
 Create the service file:
 
 ```bash
@@ -48,8 +57,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=%i
-# Optional: set a fixed API port instead of a random one.
-# Environment=INKYPAL_PORT=8080
+EnvironmentFile=-/etc/inkypal.env
 ExecStart=/usr/local/bin/inkypal
 Restart=always
 RestartSec=3
