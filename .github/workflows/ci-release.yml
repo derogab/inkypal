@@ -75,7 +75,13 @@ jobs:
               apt-get install -y gcc &&
               python -m pip install --upgrade pip &&
               python -m pip install -r requirements.txt pyinstaller &&
-              pyinstaller --clean --onefile --name inkypal --paths src src/inkypal/__main__.py &&
+              pyinstaller \
+                --clean \
+                --onefile \
+                --name inkypal \
+                --paths src \
+                --collect-submodules gpiozero.pins \
+                src/inkypal/__main__.py &&
               cp dist/inkypal /work/dist/${{ matrix.artifact_name }}
             '
 
