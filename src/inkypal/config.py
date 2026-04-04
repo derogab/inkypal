@@ -6,7 +6,7 @@ import os
 from collections.abc import Mapping
 
 IDLE_ANIMATION_SECONDS = 10
-FACE_OVERRIDE_SECONDS = 60
+DISPLAY_OVERRIDE_SECONDS = 60
 
 
 def parse_port(value: str | None) -> int:

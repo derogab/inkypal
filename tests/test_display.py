@@ -47,7 +47,7 @@ class DisplayControllerTests(TestCase):
                 port=8080,
             ),
             now=lambda: fake_time[0],
-            face_override_seconds=60,
+            override_seconds=60,
         )
 
         controller.render_current()
@@ -61,6 +61,37 @@ class DisplayControllerTests(TestCase):
         fake_time[0] = 61.0
         controller.animate()
         self.assertEqual(controller.state.face, "look_right")
+        self.assertEqual(controller.state.message, "")
+
+    def test_message_override_expires_and_clears_content(self) -> None:
+        fake_time = [0.0]
+        epd = FakeEpd()
+        controller = DisplayController(
+            epd,
+            DisplayState(
+                face=IDLE_FACES[1],
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=8080,
+            ),
+            now=lambda: fake_time[0],
+            override_seconds=60,
+        )
+
+        controller.render_current()
+        controller.update(message="hello")
+        self.assertEqual(controller.state.message, "hello")
+        self.assertEqual(controller.state.face, IDLE_FACES[1])
+
+        fake_time[0] = 30.0
+        controller.animate()
+        self.assertEqual(controller.state.message, "hello")
+
+        fake_time[0] = 61.0
+        controller.animate()
+        self.assertEqual(controller.state.message, "")
+        self.assertEqual(controller.state.face, IDLE_FACES[1])
 
     def test_power_off_pauses_idle_animation(self) -> None:
         epd = FakeEpd()

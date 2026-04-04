@@ -142,6 +142,8 @@ curl http://PI_IP:PORT/faces
 
 Updates the companion display.
 
+Custom face/content updates are temporary. After 1 minute, the content is cleared and the idle face animation resumes.
+
 JSON body fields:
 
 - `face` - optional built-in face name

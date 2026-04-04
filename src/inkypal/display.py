@@ -9,7 +9,7 @@ from time import monotonic
 
 from PIL import Image
 
-from inkypal.config import FACE_OVERRIDE_SECONDS
+from inkypal.config import DISPLAY_OVERRIDE_SECONDS
 from inkypal.faces import IDLE_FACES, resolve_face
 from inkypal.render import render_face_image
 
@@ -35,17 +35,17 @@ class DisplayController:
         *,
         now: Callable[[], float] = monotonic,
         idle_faces: Sequence[str] = IDLE_FACES,
-        face_override_seconds: int = FACE_OVERRIDE_SECONDS,
+        override_seconds: int = DISPLAY_OVERRIDE_SECONDS,
     ) -> None:
         self._epd = epd
         self._state = state
         self._lock = RLock()
         self._ready_for_partial = False
         self._powered_off = False
-        self._face_override_until: float | None = None
+        self._override_until: float | None = None
         self._now = now
         self._idle_faces = tuple(idle_faces)
-        self._face_override_seconds = face_override_seconds
+        self._override_seconds = override_seconds
         self._idle_index = 0
 
         if state.face in self._idle_faces:
@@ -90,12 +90,11 @@ class DisplayController:
                 self._state.face = face_name
                 if face_name in self._idle_faces:
                     self._idle_index = (self._idle_faces.index(face_name) + 1) % len(self._idle_faces)
-                    self._face_override_until = None
-                else:
-                    self._face_override_until = self._now() + self._face_override_seconds
 
             if message is not None:
                 self._state.message = message
+
+            self._refresh_override_until()
 
             self._powered_off = False
             self._render(self._state, partial=self._ready_for_partial)
@@ -106,10 +105,25 @@ class DisplayController:
             if self._powered_off:
                 return
 
-            if self._face_override_until is not None:
-                if self._now() < self._face_override_until:
+            if self._override_until is not None:
+                if self._now() < self._override_until:
                     return
-                self._face_override_until = None
+
+                self._override_until = None
+                changed = False
+
+                if self._state.message:
+                    self._state.message = ""
+                    changed = True
+
+                if self._state.face not in self._idle_faces:
+                    self._state.face = self._idle_faces[self._idle_index]
+                    self._idle_index = (self._idle_index + 1) % len(self._idle_faces)
+                    changed = True
+
+                if changed:
+                    self._render(self._state, partial=self._ready_for_partial)
+                    return
 
             next_face = self._idle_faces[self._idle_index]
             self._idle_index = (self._idle_index + 1) % len(self._idle_faces)
@@ -130,6 +144,7 @@ class DisplayController:
         blank_buffer = self._blank_buffer()
         with self._lock:
             self._powered_off = True
+            self._override_until = None
             if not self._ready_for_partial:
                 self._epd.init()
                 self._epd.display_part_base_image(blank_buffer)
@@ -137,6 +152,12 @@ class DisplayController:
             else:
                 self._epd.display_partial(blank_buffer)
         return self._state
+
+    def _refresh_override_until(self) -> None:
+        if self._state.face not in self._idle_faces or self._state.message:
+            self._override_until = self._now() + self._override_seconds
+        else:
+            self._override_until = None
 
     def _blank_buffer(self) -> bytearray:
         blank_image = Image.new("1", (self._epd.height, self._epd.width), 255)
