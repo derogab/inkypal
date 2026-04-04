@@ -1,4 +1,4 @@
-# InkyPal AI
+# InkyPal
 
 `InkyPal` is a tiny smart companion on e-ink.
 
@@ -201,6 +201,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests
 
 - [Waveshare official e-Paper repository](https://github.com/waveshareteam/e-Paper)
 - [Upstream `epd2in13_V4.py` driver](https://github.com/waveshareteam/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd2in13_V4.py)
+- [Upstream `epdconfig.py` driver support module](https://github.com/waveshareteam/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epdconfig.py)
 - [Waveshare 2.13inch e-Paper HAT (G) Manual](https://www.waveshare.com/wiki/2.13inch_e-Paper_HAT_(G)_Manual)
 
 ## Credits
