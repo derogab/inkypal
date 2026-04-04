@@ -72,6 +72,9 @@ jobs:
             -v "$PWD:/work" -w /work \
             debian:trixie bash -lc '
               apt-get update &&
+              apt-get install -y ca-certificates &&
+              echo "deb [trusted=yes] https://archive.raspberrypi.com/debian trixie main" > /etc/apt/sources.list.d/raspi.list &&
+              apt-get update &&
               apt-get install -y \
                 gcc \
                 python3 \

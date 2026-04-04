@@ -4,4 +4,7 @@ __pycache__/
 *.pyd
 .venv/
 venv/
+build/
+dist/
+*.spec
 target/
