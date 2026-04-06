@@ -73,9 +73,9 @@ class AIConfigTests(TestCase):
         cfg = get_ai_config(
             {
                 "OPENAI_API_KEY": "sk-test",
-                "OPENAI_OPENROUTER_REFERER": "https://example.com/app",
-                "OPENAI_OPENROUTER_TITLE": "Example App",
-                "OPENAI_OPENROUTER_CATEGORIES": "personal-agent,cli-agent",
+                "OPENROUTER_REFERER": "https://example.com/app",
+                "OPENROUTER_TITLE": "Example App",
+                "OPENROUTER_CATEGORIES": "personal-agent,cli-agent",
             }
         )
         self.assertEqual(cfg.headers["HTTP-Referer"], "https://example.com/app")

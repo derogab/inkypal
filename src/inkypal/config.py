@@ -74,15 +74,15 @@ def get_ai_config(env: Mapping[str, str] | None = None) -> AIConfig | None:
 
     if is_openrouter_base_url(base_url):
         headers["HTTP-Referer"] = (
-            env.get("OPENAI_OPENROUTER_REFERER", "").strip()
+            env.get("OPENROUTER_REFERER", "").strip()
             or DEFAULT_OPENROUTER_REFERER
         )
         headers["X-OpenRouter-Title"] = (
-            env.get("OPENAI_OPENROUTER_TITLE", "").strip()
+            env.get("OPENROUTER_TITLE", "").strip()
             or DEFAULT_OPENROUTER_TITLE
         )
 
-        categories = env.get("OPENAI_OPENROUTER_CATEGORIES", "").strip()
+        categories = env.get("OPENROUTER_CATEGORIES", "").strip()
         if categories:
             headers["X-OpenRouter-Categories"] = categories
 
