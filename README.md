@@ -1,7 +1,7 @@
 # InkyPal
 
 <p align="center">
-  <img src=".github/assets/display.png" alt="InkyPal e-ink display" />
+  <img src=".github/assets/display.png" alt="InkyPal e-ink display" width="100%" />
 </p>
 
 `InkyPal` is a tiny smart companion on e-ink.
