@@ -18,7 +18,9 @@ Create `.github/assets/display.png` from the current renderer with the canonical
 - Version text: `v0.0.0`
 - Final output scale: `3x` nearest-neighbor
 
-Render the image manually. Do not call `render_face_image`, because the preview must pin the footer version text to `v0.0.0` instead of the package version.
+Use the exact renderer that drives the e-ink output. Only override the canonical preview inputs above.
+
+Do not reimplement layout, wrapping, font selection, scaling masks, or footer placement in the skill. Call `render_face_image` directly and temporarily pin `inkypal.render.__version__` to `0.0.0` so the preview footer stays at `v0.0.0`.
 
 ## Runtime selection
 
@@ -45,7 +47,7 @@ container system start
 
 ## Container workflow
 
-Use the same Python script body for Apple Container, Docker, and Podman. Install the Python and system dependencies required to run the real repository renderer inside the container. In the current repo that means `Pillow` plus `fonts-dejavu-core`, so the preview uses the same drawing code and the same preferred Linux monospace font path as the e-ink runtime.
+Use the same Python script body for Apple Container, Docker, and Podman. Install the Python and system dependencies required to run the real repository renderer inside the container. In the current repo that means `Pillow` plus `fonts-dejavu-core`, so the preview uses the same render path and the same preferred Linux monospace font path as the e-ink runtime.
 
 ### Apple Container
 
@@ -55,42 +57,25 @@ container run --rm --volume "$PWD:/app" --workdir /app docker.io/python:3.12-sli
   apt-get install -y --no-install-recommends fonts-dejavu-core >/dev/null &&
   pip install -q Pillow &&
   PYTHONPATH=src python3 - <<"PY"
-from PIL import Image, ImageDraw
+from PIL import Image
 
+import inkypal.render as render
 from inkypal.faces import resolve_face
-from inkypal.render import (
-    DISPLAY_IMAGE_SIZE,
-    FACE_FONT_SIZE,
-    FACE_SCALE,
-    FACE_Y,
-    FOOTER_Y,
-    MESSAGE_AREA_BOTTOM,
-    MESSAGE_MAX_LINES,
-    MESSAGE_AREA_TOP,
-    MESSAGE_HORIZONTAL_MARGIN,
-    draw_bottom_left,
-    draw_bottom_right,
-    draw_message_centered,
-    draw_scaled_centered,
-    load_font,
-)
 
-image = Image.new("1", DISPLAY_IMAGE_SIZE, 255)
-draw = ImageDraw.Draw(image)
-_, face_text = resolve_face("happy")
+original_version = render.__version__
+render.__version__ = "0.0.0"
 
-draw_scaled_centered(image, face_text, load_font(FACE_FONT_SIZE), y=FACE_Y, scale=FACE_SCALE)
-draw_message_centered(
-    image,
-    "Hello world!",
-    top=MESSAGE_AREA_TOP,
-    bottom=MESSAGE_AREA_BOTTOM,
-    max_width=DISPLAY_IMAGE_SIZE[0] - (MESSAGE_HORIZONTAL_MARGIN * 2),
-    max_lines=MESSAGE_MAX_LINES,
-)
-footer_font = load_font(10)
-draw_bottom_left(draw, "192.168.1.2:8080", footer_font, y=FOOTER_Y)
-draw_bottom_right(draw, "v0.0.0", footer_font, y=FOOTER_Y)
+try:
+    _, face_text = resolve_face("happy")
+    image = render.render_face_image(
+        face_text=face_text,
+        message="Hello world!",
+        host="192.168.1.2",
+        port=8080,
+        rotation=0,
+    )
+finally:
+    render.__version__ = original_version
 
 scaled = image.resize((image.width * 3, image.height * 3), Image.Resampling.NEAREST)
 scaled.save(".github/assets/display.png")
@@ -105,42 +90,25 @@ docker run --rm -v "$PWD:/app" -w /app python:3.12-slim bash -lc '
   apt-get install -y --no-install-recommends fonts-dejavu-core >/dev/null &&
   pip install -q Pillow &&
   PYTHONPATH=src python3 - <<"PY"
-from PIL import Image, ImageDraw
+from PIL import Image
 
+import inkypal.render as render
 from inkypal.faces import resolve_face
-from inkypal.render import (
-    DISPLAY_IMAGE_SIZE,
-    FACE_FONT_SIZE,
-    FACE_SCALE,
-    FACE_Y,
-    FOOTER_Y,
-    MESSAGE_AREA_BOTTOM,
-    MESSAGE_MAX_LINES,
-    MESSAGE_AREA_TOP,
-    MESSAGE_HORIZONTAL_MARGIN,
-    draw_bottom_left,
-    draw_bottom_right,
-    draw_message_centered,
-    draw_scaled_centered,
-    load_font,
-)
 
-image = Image.new("1", DISPLAY_IMAGE_SIZE, 255)
-draw = ImageDraw.Draw(image)
-_, face_text = resolve_face("happy")
+original_version = render.__version__
+render.__version__ = "0.0.0"
 
-draw_scaled_centered(image, face_text, load_font(FACE_FONT_SIZE), y=FACE_Y, scale=FACE_SCALE)
-draw_message_centered(
-    image,
-    "Hello world!",
-    top=MESSAGE_AREA_TOP,
-    bottom=MESSAGE_AREA_BOTTOM,
-    max_width=DISPLAY_IMAGE_SIZE[0] - (MESSAGE_HORIZONTAL_MARGIN * 2),
-    max_lines=MESSAGE_MAX_LINES,
-)
-footer_font = load_font(10)
-draw_bottom_left(draw, "192.168.1.2:8080", footer_font, y=FOOTER_Y)
-draw_bottom_right(draw, "v0.0.0", footer_font, y=FOOTER_Y)
+try:
+    _, face_text = resolve_face("happy")
+    image = render.render_face_image(
+        face_text=face_text,
+        message="Hello world!",
+        host="192.168.1.2",
+        port=8080,
+        rotation=0,
+    )
+finally:
+    render.__version__ = original_version
 
 scaled = image.resize((image.width * 3, image.height * 3), Image.Resampling.NEAREST)
 scaled.save(".github/assets/display.png")
@@ -155,42 +123,25 @@ podman run --rm -v "$PWD:/app" -w /app docker.io/python:3.12-slim bash -lc '
   apt-get install -y --no-install-recommends fonts-dejavu-core >/dev/null &&
   pip install -q Pillow &&
   PYTHONPATH=src python3 - <<"PY"
-from PIL import Image, ImageDraw
+from PIL import Image
 
+import inkypal.render as render
 from inkypal.faces import resolve_face
-from inkypal.render import (
-    DISPLAY_IMAGE_SIZE,
-    FACE_FONT_SIZE,
-    FACE_SCALE,
-    FACE_Y,
-    FOOTER_Y,
-    MESSAGE_AREA_BOTTOM,
-    MESSAGE_MAX_LINES,
-    MESSAGE_AREA_TOP,
-    MESSAGE_HORIZONTAL_MARGIN,
-    draw_bottom_left,
-    draw_bottom_right,
-    draw_message_centered,
-    draw_scaled_centered,
-    load_font,
-)
 
-image = Image.new("1", DISPLAY_IMAGE_SIZE, 255)
-draw = ImageDraw.Draw(image)
-_, face_text = resolve_face("happy")
+original_version = render.__version__
+render.__version__ = "0.0.0"
 
-draw_scaled_centered(image, face_text, load_font(FACE_FONT_SIZE), y=FACE_Y, scale=FACE_SCALE)
-draw_message_centered(
-    image,
-    "Hello world!",
-    top=MESSAGE_AREA_TOP,
-    bottom=MESSAGE_AREA_BOTTOM,
-    max_width=DISPLAY_IMAGE_SIZE[0] - (MESSAGE_HORIZONTAL_MARGIN * 2),
-    max_lines=MESSAGE_MAX_LINES,
-)
-footer_font = load_font(10)
-draw_bottom_left(draw, "192.168.1.2:8080", footer_font, y=FOOTER_Y)
-draw_bottom_right(draw, "v0.0.0", footer_font, y=FOOTER_Y)
+try:
+    _, face_text = resolve_face("happy")
+    image = render.render_face_image(
+        face_text=face_text,
+        message="Hello world!",
+        host="192.168.1.2",
+        port=8080,
+        rotation=0,
+    )
+finally:
+    render.__version__ = original_version
 
 scaled = image.resize((image.width * 3, image.height * 3), Image.Resampling.NEAREST)
 scaled.save(".github/assets/display.png")
@@ -201,45 +152,30 @@ PY'
 
 Use this only when `container`, `docker`, and `podman` are all unavailable.
 
+This still uses `render_face_image`, but the output can diverge if the host does not have the same preferred font available.
+
 ```bash
 python3 -m pip install Pillow
 PYTHONPATH=src python3 - <<"PY"
-from PIL import Image, ImageDraw
+from PIL import Image
 
+import inkypal.render as render
 from inkypal.faces import resolve_face
-from inkypal.render import (
-    DISPLAY_IMAGE_SIZE,
-    FACE_FONT_SIZE,
-    FACE_SCALE,
-    FACE_Y,
-    FOOTER_Y,
-    MESSAGE_AREA_BOTTOM,
-    MESSAGE_MAX_LINES,
-    MESSAGE_AREA_TOP,
-    MESSAGE_HORIZONTAL_MARGIN,
-    draw_bottom_left,
-    draw_bottom_right,
-    draw_message_centered,
-    draw_scaled_centered,
-    load_font,
-)
 
-image = Image.new("1", DISPLAY_IMAGE_SIZE, 255)
-draw = ImageDraw.Draw(image)
-_, face_text = resolve_face("happy")
+original_version = render.__version__
+render.__version__ = "0.0.0"
 
-draw_scaled_centered(image, face_text, load_font(FACE_FONT_SIZE), y=FACE_Y, scale=FACE_SCALE)
-draw_message_centered(
-    image,
-    "Hello world!",
-    top=MESSAGE_AREA_TOP,
-    bottom=MESSAGE_AREA_BOTTOM,
-    max_width=DISPLAY_IMAGE_SIZE[0] - (MESSAGE_HORIZONTAL_MARGIN * 2),
-    max_lines=MESSAGE_MAX_LINES,
-)
-footer_font = load_font(10)
-draw_bottom_left(draw, "192.168.1.2:8080", footer_font, y=FOOTER_Y)
-draw_bottom_right(draw, "v0.0.0", footer_font, y=FOOTER_Y)
+try:
+    _, face_text = resolve_face("happy")
+    image = render.render_face_image(
+        face_text=face_text,
+        message="Hello world!",
+        host="192.168.1.2",
+        port=8080,
+        rotation=0,
+    )
+finally:
+    render.__version__ = original_version
 
 scaled = image.resize((image.width * 3, image.height * 3), Image.Resampling.NEAREST)
 scaled.save(".github/assets/display.png")
