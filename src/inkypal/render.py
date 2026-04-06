@@ -47,6 +47,7 @@ def render_face_image(
     host: str,
     port: int,
     rotation: int = DEFAULT_ROTATION,
+    update_available: bool = False,
 ) -> Image.Image:
     """Render a white image with black text for the e-paper display."""
     image = Image.new("1", DISPLAY_IMAGE_SIZE, 255)
@@ -68,11 +69,12 @@ def render_face_image(
             max_lines=MESSAGE_MAX_LINES,
             scale=MESSAGE_SCALE,
         )
-        draw_bottom_left(draw, f"{host}:{port}", small_font, y=FOOTER_Y)
-        draw_bottom_right(draw, f"v{__version__}", small_font, y=FOOTER_Y)
-    else:
-        draw_bottom_left(draw, f"{host}:{port}", small_font, y=FOOTER_Y)
-        draw_bottom_right(draw, f"v{__version__}", small_font, y=FOOTER_Y)
+
+    version_text = f"v{__version__}"
+    draw_bottom_left(draw, f"{host}:{port}", small_font, y=FOOTER_Y)
+    draw_bottom_right(draw, version_text, small_font, y=FOOTER_Y)
+    if update_available:
+        _draw_update_dot(draw, version_text, small_font, y=FOOTER_Y)
 
     return image.rotate(rotation)
 
@@ -165,6 +167,23 @@ def ellipsize_text(text: str, max_chars: int) -> str:
     if max_chars <= 1:
         return text[:max_chars]
     return text[: max_chars - 1] + "…"
+
+
+def _draw_update_dot(
+    draw: ImageDraw.ImageDraw,
+    version_text: str,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    y: int,
+    margin: int = 6,
+    radius: int = 2,
+) -> None:
+    """Draw a small filled circle just left of the version text."""
+    left, top, right, bottom = draw.textbbox((0, 0), version_text, font=font)
+    text_width = right - left
+    text_x = DISPLAY_IMAGE_SIZE[0] - text_width - margin
+    cy = y + (bottom - top) // 2
+    cx = text_x - radius - 3
+    draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=0)
 
 
 def draw_bottom_left(
