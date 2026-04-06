@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 IDLE_ANIMATION_SECONDS = 10
 DISPLAY_OVERRIDE_SECONDS = 60
+UPDATE_CHECK_INTERVAL_SECONDS = 60 * 60
 
 DEFAULT_AI_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_AI_MODEL = "auto"

@@ -93,6 +93,63 @@ class DisplayControllerTests(TestCase):
         self.assertEqual(controller.state.message, "")
         self.assertEqual(controller.state.face, IDLE_FACES[1])
 
+    def test_set_update_available_triggers_render(self) -> None:
+        epd = FakeEpd()
+        controller = DisplayController(
+            epd,
+            DisplayState(
+                face=IDLE_FACES[1],
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=8080,
+            ),
+        )
+        controller.render_current()
+        epd.operations.clear()
+
+        controller.set_update_available(True)
+        self.assertTrue(controller.state.update_available)
+        self.assertIn("display_partial", epd.operations)
+
+    def test_set_update_available_skips_render_when_unchanged(self) -> None:
+        epd = FakeEpd()
+        controller = DisplayController(
+            epd,
+            DisplayState(
+                face=IDLE_FACES[1],
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=8080,
+            ),
+        )
+        controller.render_current()
+        epd.operations.clear()
+
+        controller.set_update_available(False)
+        self.assertEqual(epd.operations, [])
+
+    def test_set_update_available_skips_render_when_powered_off(self) -> None:
+        epd = FakeEpd()
+        controller = DisplayController(
+            epd,
+            DisplayState(
+                face=IDLE_FACES[1],
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=8080,
+            ),
+        )
+        controller.render_current()
+        controller.power_off()
+        epd.operations.clear()
+
+        controller.set_update_available(True)
+        self.assertTrue(controller.state.update_available)
+        self.assertEqual(epd.operations, [])
+
     def test_power_off_pauses_idle_animation(self) -> None:
         epd = FakeEpd()
         controller = DisplayController(

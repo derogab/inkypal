@@ -4,21 +4,29 @@ from __future__ import annotations
 
 import sys
 from threading import Event, Thread
+from time import monotonic
 
 from inkypal.api import make_server
-from inkypal.config import IDLE_ANIMATION_SECONDS, get_ai_config, get_configured_port
+from inkypal.config import IDLE_ANIMATION_SECONDS, UPDATE_CHECK_INTERVAL_SECONDS, get_ai_config, get_configured_port
 from inkypal.display import DisplayController, DisplayState
 from inkypal.faces import IDLE_FACES, resolve_face
 from inkypal.network import get_local_ip
 from inkypal.render import DEFAULT_MESSAGE, DEFAULT_ROTATION
+from inkypal.update import check_update_available
 
 
 def run_idle_loop(controller: DisplayController, stop_event: Event) -> None:
+    next_update_check = 0.0
     while not stop_event.wait(IDLE_ANIMATION_SECONDS):
         try:
             controller.animate()
         except Exception as error:
             print(f"idle animation error: {error}", file=sys.stderr)
+
+        now = monotonic()
+        if now >= next_update_check:
+            next_update_check = now + UPDATE_CHECK_INTERVAL_SECONDS
+            controller.set_update_available(check_update_available())
 
 
 def main() -> int:

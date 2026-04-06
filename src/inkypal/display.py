@@ -23,6 +23,7 @@ class DisplayState:
     rotation: int
     host: str
     port: int
+    update_available: bool = False
 
 
 class DisplayController:
@@ -134,6 +135,14 @@ class DisplayController:
             self._state.face = next_face
             self._render(self._state, partial=self._ready_for_partial)
 
+    def set_update_available(self, available: bool) -> None:
+        with self._lock:
+            if self._state.update_available == available:
+                return
+            self._state.update_available = available
+            if not self._powered_off:
+                self._render(self._state, partial=self._ready_for_partial)
+
     def shutdown(self) -> None:
         with self._lock:
             self._epd.sleep()
@@ -171,6 +180,7 @@ class DisplayController:
             host=state.host,
             port=state.port,
             rotation=state.rotation,
+            update_available=state.update_available,
         )
         image_buffer = self._epd.get_buffer(image)
         with self._lock:
