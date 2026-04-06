@@ -14,6 +14,9 @@ class _FakeCompletionHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         body = json.loads(self.rfile.read(length).decode("utf-8"))
         self.server.last_request_body = body
+        self.server.last_request_headers = {
+            key.lower(): value for key, value in self.headers.items()
+        }
 
         reply = {
             "choices": [
@@ -75,6 +78,31 @@ class TransformMessageTests(TestCase):
         thread.join(timeout=2)
 
         self.assertEqual(result, "Looking warm at 32C!")
+
+    def test_sends_configured_headers(self) -> None:
+        server = HTTPServer(("127.0.0.1", 0), _FakeCompletionHandler)
+        port = server.server_address[1]
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        cfg = AIConfig(
+            base_url=f"http://127.0.0.1:{port}",
+            api_key="sk-test",
+            model="m",
+            headers={
+                "HTTP-Referer": "https://github.com/derogab/inkypal",
+                "X-OpenRouter-Title": "InkyPal AI",
+                "X-OpenRouter-Categories": "personal-agent",
+            },
+        )
+        transform_message("temp 32", cfg)
+        server.server_close()
+        thread.join(timeout=2)
+
+        headers = server.last_request_headers
+        self.assertEqual(headers["http-referer"], "https://github.com/derogab/inkypal")
+        self.assertEqual(headers["x-openrouter-title"], "InkyPal AI")
+        self.assertEqual(headers["x-openrouter-categories"], "personal-agent")
 
     def test_fallback_on_connection_error(self) -> None:
         cfg = AIConfig(

@@ -21,6 +21,11 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 | `OPENAI_API_KEY` | API key to enable AI message transformation (optional). When set, content sent to `POST /message` is rewritten into a short friendly sentence before being displayed. Any OpenAI-compatible v1 provider works ([OpenRouter](https://openrouter.ai), OpenAI, local LLMs, etc.). | - |
 | `OPENAI_BASE_URL` | Base URL for the OpenAI-compatible API (optional). | https://openrouter.ai/api/v1 |
 | `OPENAI_MODEL` | Model to use for AI message transformation (optional). | auto |
+| `OPENROUTER_REFERER` | OpenRouter attribution URL override (optional). Used as `HTTP-Referer` when `OPENAI_BASE_URL` points to OpenRouter. | https://github.com/derogab/inkypal |
+| `OPENROUTER_TITLE` | OpenRouter attribution title override (optional). Used as `X-OpenRouter-Title` when `OPENAI_BASE_URL` points to OpenRouter. | InkyPal AI |
+| `OPENROUTER_CATEGORIES` | Comma-separated OpenRouter attribution categories (optional). Used as `X-OpenRouter-Categories` when `OPENAI_BASE_URL` points to OpenRouter. | - |
+
+When `OPENAI_BASE_URL` points to OpenRouter, `InkyPal` sends OpenRouter attribution headers by default using the repository URL and `InkyPal AI`. Set the `OPENROUTER_*` variables to override them.
 
 ## Setup
 
@@ -60,6 +65,8 @@ sudo tee /etc/inkypal.env >/dev/null <<'EOF'
 # OPENAI_API_KEY=sk-...
 # OPENAI_BASE_URL=https://openrouter.ai/api/v1
 # OPENAI_MODEL=auto
+# OPENROUTER_REFERER=https://github.com/derogab/inkypal
+# OPENROUTER_TITLE=InkyPal AI
 EOF
 ```
 

@@ -50,13 +50,16 @@ def transform_message(content: str, config: AIConfig) -> str:
         }
     ).encode("utf-8")
 
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {config.api_key}",
+    }
+    headers.update(config.headers)
+
     request = urllib.request.Request(
         url,
         data=body,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {config.api_key}",
-        },
+        headers=headers,
         method="POST",
     )
 

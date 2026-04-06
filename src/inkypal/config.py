@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 IDLE_ANIMATION_SECONDS = 10
 DISPLAY_OVERRIDE_SECONDS = 60
@@ -12,6 +13,8 @@ UPDATE_CHECK_INTERVAL_SECONDS = 60 * 60
 
 DEFAULT_AI_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_AI_MODEL = "auto"
+DEFAULT_OPENROUTER_REFERER = "https://github.com/derogab/inkypal"
+DEFAULT_OPENROUTER_TITLE = "InkyPal AI"
 
 
 def parse_port(value: str | None) -> int:
@@ -45,6 +48,12 @@ class AIConfig:
     base_url: str
     api_key: str
     model: str
+    headers: Mapping[str, str] = field(default_factory=dict)
+
+
+def is_openrouter_base_url(base_url: str) -> bool:
+    """Return ``True`` when *base_url* points to OpenRouter."""
+    return (urlparse(base_url).hostname or "").lower() == "openrouter.ai"
 
 
 def get_ai_config(env: Mapping[str, str] | None = None) -> AIConfig | None:
@@ -62,5 +71,25 @@ def get_ai_config(env: Mapping[str, str] | None = None) -> AIConfig | None:
 
     base_url = env.get("OPENAI_BASE_URL", "").strip() or DEFAULT_AI_BASE_URL
     model = env.get("OPENAI_MODEL", "").strip() or DEFAULT_AI_MODEL
+    headers: dict[str, str] = {}
 
-    return AIConfig(base_url=base_url.rstrip("/"), api_key=api_key, model=model)
+    if is_openrouter_base_url(base_url):
+        headers["HTTP-Referer"] = (
+            env.get("OPENROUTER_REFERER", "").strip()
+            or DEFAULT_OPENROUTER_REFERER
+        )
+        headers["X-OpenRouter-Title"] = (
+            env.get("OPENROUTER_TITLE", "").strip()
+            or DEFAULT_OPENROUTER_TITLE
+        )
+
+        categories = env.get("OPENROUTER_CATEGORIES", "").strip()
+        if categories:
+            headers["X-OpenRouter-Categories"] = categories
+
+    return AIConfig(
+        base_url=base_url.rstrip("/"),
+        api_key=api_key,
+        model=model,
+        headers=headers,
+    )
