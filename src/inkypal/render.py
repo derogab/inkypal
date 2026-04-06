@@ -165,6 +165,15 @@ def fit_message_to_area(
     return fallback_wrapped, fallback_font
 
 
+def message_character_capacity() -> int:
+    """Estimate total fallback characters available in the message area."""
+    image = Image.new("1", DISPLAY_IMAGE_SIZE, 255)
+    draw = ImageDraw.Draw(image)
+    font = load_font(MESSAGE_FONT_SIZES[-1])
+    max_width = DISPLAY_IMAGE_SIZE[0] - (MESSAGE_HORIZONTAL_MARGIN * 2)
+    return message_max_chars(draw, font, max_width=max_width, scale=1) * MESSAGE_MAX_LINES
+
+
 def wrap_message_lines(
     text: str,
     draw: ImageDraw.ImageDraw,

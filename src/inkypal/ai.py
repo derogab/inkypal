@@ -3,11 +3,24 @@
 from __future__ import annotations
 
 import json
+import math
 import urllib.request
 from typing import TYPE_CHECKING
 
+from inkypal.render import ellipsize_text, message_character_capacity
+
 if TYPE_CHECKING:
     from inkypal.config import AIConfig
+
+_AI_RESPONSE_CHAR_MARGIN = 8
+_AI_TOKEN_BUDGET_CHARS_PER_TOKEN = 2
+AI_RESPONSE_MAX_CHARS = max(1, message_character_capacity() - _AI_RESPONSE_CHAR_MARGIN)
+# Short one-line replies are still tokenized more densely than raw characters,
+# so keep a conservative token budget instead of treating them as equivalent.
+AI_REQUEST_MAX_TOKENS = max(
+    24,
+    math.ceil(AI_RESPONSE_MAX_CHARS / _AI_TOKEN_BUDGET_CHARS_PER_TOKEN),
+)
 
 SYSTEM_PROMPT = (
     "You are InkyPal, a tiny friendly companion bot living on a small e-ink "
@@ -16,7 +29,7 @@ SYSTEM_PROMPT = (
     "about the content, as if you are their little buddy telling them what "
     "is going on.\n\n"
     "Rules:\n"
-    "- Maximum 60 characters. Brevity is essential.\n"
+    f"- Maximum {AI_RESPONSE_MAX_CHARS} characters so it fits the display.\n"
     "- Write exactly ONE short sentence — no line breaks.\n"
     "- Sound warm, cheerful, and concise — like a helpful little pal.\n"
     "- Do NOT use emoji.\n"
@@ -45,7 +58,7 @@ def transform_message(content: str, config: AIConfig) -> str:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": content},
             ],
-            "max_tokens": 60,
+            "max_tokens": AI_REQUEST_MAX_TOKENS,
             "temperature": 0.7,
         }
     ).encode("utf-8")
@@ -67,6 +80,7 @@ def transform_message(content: str, config: AIConfig) -> str:
         with urllib.request.urlopen(request, timeout=_TIMEOUT_SECONDS) as response:
             data = json.loads(response.read().decode("utf-8"))
         text = data["choices"][0]["message"]["content"].strip().strip('"')
+        text = ellipsize_text(" ".join(text.split()), AI_RESPONSE_MAX_CHARS)
         return text if text else content
     except Exception:
         return content
