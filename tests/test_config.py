@@ -3,6 +3,8 @@ from unittest import TestCase
 from inkypal.config import (
     DEFAULT_AI_BASE_URL,
     DEFAULT_AI_MODEL,
+    DEFAULT_OPENROUTER_REFERER,
+    DEFAULT_OPENROUTER_TITLE,
     get_ai_config,
     get_configured_port,
     parse_port,
@@ -42,6 +44,9 @@ class AIConfigTests(TestCase):
         self.assertEqual(cfg.api_key, "sk-test")
         self.assertEqual(cfg.base_url, DEFAULT_AI_BASE_URL)
         self.assertEqual(cfg.model, DEFAULT_AI_MODEL)
+        self.assertEqual(cfg.headers["HTTP-Referer"], DEFAULT_OPENROUTER_REFERER)
+        self.assertEqual(cfg.headers["X-OpenRouter-Title"], DEFAULT_OPENROUTER_TITLE)
+        self.assertNotIn("X-OpenRouter-Categories", cfg.headers)
 
     def test_custom_base_url_and_model(self) -> None:
         cfg = get_ai_config(
@@ -53,6 +58,7 @@ class AIConfigTests(TestCase):
         )
         self.assertEqual(cfg.base_url, "http://localhost:1234/v1")
         self.assertEqual(cfg.model, "llama3")
+        self.assertEqual(cfg.headers, {})
 
     def test_trailing_slash_stripped_from_base_url(self) -> None:
         cfg = get_ai_config(
@@ -62,3 +68,19 @@ class AIConfigTests(TestCase):
             }
         )
         self.assertEqual(cfg.base_url, "http://host/v1")
+
+    def test_openrouter_attribution_envs_override_defaults(self) -> None:
+        cfg = get_ai_config(
+            {
+                "OPENAI_API_KEY": "sk-test",
+                "OPENAI_OPENROUTER_REFERER": "https://example.com/app",
+                "OPENAI_OPENROUTER_TITLE": "Example App",
+                "OPENAI_OPENROUTER_CATEGORIES": "personal-agent,cli-agent",
+            }
+        )
+        self.assertEqual(cfg.headers["HTTP-Referer"], "https://example.com/app")
+        self.assertEqual(cfg.headers["X-OpenRouter-Title"], "Example App")
+        self.assertEqual(
+            cfg.headers["X-OpenRouter-Categories"],
+            "personal-agent,cli-agent",
+        )
