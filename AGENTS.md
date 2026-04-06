@@ -18,7 +18,7 @@ Do not duplicate user-facing documentation from `README.md`.
 - Avoid writing code comments unless they clarify non-obvious behavior.
 - Avoid adding documentation that describes internal code structure unless it is needed for maintenance.
 - When behavior changes, update `README.md` if the change affects users.
-- When display rendering changes (faces, layout, fonts, footer, or message formatting), regenerate the README header image at `.github/assets/display.png`. Render manually (not via `render_face_image`, to control footer values) with `rotation=0`, the `happy` face, message `"Hello world!"`, host `192.168.1.2`, port `8080`, version `v0.0.0`, then 3x nearest-neighbor scale. Run inside Docker if Pillow is not available locally: `docker run --rm -v "$(pwd):/app" -w /app python:3.12-slim bash -c "pip install -q Pillow && PYTHONPATH=src python3 -c \"<script>\""`.
+- When display rendering changes (faces, layout, fonts, footer, or message formatting), use the `generate-display-image` skill to regenerate `.github/assets/display.png`.
 
 
 ## Verification
