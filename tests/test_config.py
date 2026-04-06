@@ -1,6 +1,12 @@
 from unittest import TestCase
 
-from inkypal.config import get_configured_port, parse_port
+from inkypal.config import (
+    DEFAULT_AI_BASE_URL,
+    DEFAULT_AI_MODEL,
+    get_ai_config,
+    get_configured_port,
+    parse_port,
+)
 
 
 class ConfigTests(TestCase):
@@ -21,3 +27,38 @@ class ConfigTests(TestCase):
 
     def test_get_configured_port_reads_mapping(self) -> None:
         self.assertEqual(get_configured_port({"INKYPAL_PORT": "9000"}), 9000)
+
+
+class AIConfigTests(TestCase):
+    def test_returns_none_when_api_key_missing(self) -> None:
+        self.assertIsNone(get_ai_config({}))
+
+    def test_returns_none_when_api_key_blank(self) -> None:
+        self.assertIsNone(get_ai_config({"OPENAI_API_KEY": "  "}))
+
+    def test_returns_config_with_defaults(self) -> None:
+        cfg = get_ai_config({"OPENAI_API_KEY": "sk-test"})
+        self.assertIsNotNone(cfg)
+        self.assertEqual(cfg.api_key, "sk-test")
+        self.assertEqual(cfg.base_url, DEFAULT_AI_BASE_URL)
+        self.assertEqual(cfg.model, DEFAULT_AI_MODEL)
+
+    def test_custom_base_url_and_model(self) -> None:
+        cfg = get_ai_config(
+            {
+                "OPENAI_API_KEY": "sk-test",
+                "OPENAI_BASE_URL": "http://localhost:1234/v1/",
+                "OPENAI_MODEL": "llama3",
+            }
+        )
+        self.assertEqual(cfg.base_url, "http://localhost:1234/v1")
+        self.assertEqual(cfg.model, "llama3")
+
+    def test_trailing_slash_stripped_from_base_url(self) -> None:
+        cfg = get_ai_config(
+            {
+                "OPENAI_API_KEY": "key",
+                "OPENAI_BASE_URL": "http://host/v1///",
+            }
+        )
+        self.assertEqual(cfg.base_url, "http://host/v1")

@@ -1,4 +1,4 @@
-# InkyPal
+# InkyPal AI
 
 `InkyPal` is a tiny smart companion on e-ink.
 
@@ -8,6 +8,15 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 
 - Raspberry Pi Zero 2 W H (SPI enabled on Raspberry Pi OS)
 - Waveshare 2.13 inch e-Paper Display V4
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `INKYPAL_PORT` | Fixed API port (optional). If not set, a random free port is used. | - |
+| `OPENAI_API_KEY` | API key to enable AI message transformation (optional). When set, content sent to `POST /message` is rewritten into a short friendly sentence before being displayed. Any OpenAI-compatible v1 provider works ([OpenRouter](https://openrouter.ai), OpenAI, local LLMs, etc.). | - |
+| `OPENAI_BASE_URL` | Base URL for the OpenAI-compatible API (optional). | https://openrouter.ai/api/v1 |
+| `OPENAI_MODEL` | Model to use for AI message transformation (optional). | auto |
 
 ## Setup
 
@@ -42,6 +51,11 @@ Create `/etc/inkypal.env`:
 sudo tee /etc/inkypal.env >/dev/null <<'EOF'
 # Optional: set a fixed API port instead of a random one.
 # INKYPAL_PORT=8080
+
+# Optional: enable AI message transformation.
+# OPENAI_API_KEY=sk-...
+# OPENAI_BASE_URL=https://openrouter.ai/api/v1
+# OPENAI_MODEL=auto
 EOF
 ```
 
@@ -148,6 +162,8 @@ JSON body fields:
 
 - `face` - optional built-in face name
 - `content` - optional message shown below the face
+
+When AI is configured (see `OPENAI_API_KEY` above), the `content` value is automatically transformed into a short friendly sentence before being displayed. If AI is not configured, the raw content is shown as-is.
 
 Unknown built-in face names return `400`. Use `GET /faces` as the source of truth for the current built-in list.
 
