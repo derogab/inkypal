@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import sys
+from functools import partial
 from threading import Event, Thread
 from time import monotonic
 
 from inkypal.api import make_server
-from inkypal.config import IDLE_ANIMATION_SECONDS, UPDATE_CHECK_INTERVAL_SECONDS, get_ai_config, get_configured_port
+from inkypal.config import IDLE_ANIMATION_SECONDS, UPDATE_CHECK_INTERVAL_SECONDS, get_ai_config, get_configured_port, get_gotify_config
 from inkypal.display import DisplayController, DisplayState
 from inkypal.faces import IDLE_FACES, resolve_face
+from inkypal.gotify import send_message
 from inkypal.network import get_local_ip
 from inkypal.render import DEFAULT_MESSAGE, DEFAULT_ROTATION
 from inkypal.update import check_update_available
@@ -36,6 +38,7 @@ def main() -> int:
     host = get_local_ip()
     port = get_configured_port()
     ai_config = get_ai_config()
+    gotify_config = get_gotify_config()
     epd = EPD()
     controller = DisplayController(
         epd=epd,
@@ -45,6 +48,11 @@ def main() -> int:
             rotation=DEFAULT_ROTATION,
             host=host,
             port=0,
+        ),
+        message_sink=(
+            partial(send_message, config=gotify_config)
+            if gotify_config is not None
+            else None
         ),
     )
 

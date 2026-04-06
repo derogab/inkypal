@@ -7,6 +7,7 @@ from inkypal.config import (
     DEFAULT_OPENROUTER_TITLE,
     get_ai_config,
     get_configured_port,
+    get_gotify_config,
     parse_port,
 )
 
@@ -94,3 +95,21 @@ class AIConfigTests(TestCase):
         )
         self.assertEqual(cfg.headers["HTTP-Referer"], DEFAULT_OPENROUTER_REFERER)
         self.assertEqual(cfg.headers["X-OpenRouter-Title"], DEFAULT_OPENROUTER_TITLE)
+
+
+class GotifyConfigTests(TestCase):
+    def test_returns_none_when_url_or_token_missing(self) -> None:
+        self.assertIsNone(get_gotify_config({}))
+        self.assertIsNone(get_gotify_config({"GOTIFY_URL": "https://push.example.com"}))
+        self.assertIsNone(get_gotify_config({"GOTIFY_TOKEN": "app-token"}))
+
+    def test_returns_config_when_url_and_token_are_set(self) -> None:
+        cfg = get_gotify_config(
+            {
+                "GOTIFY_URL": " https://push.example.com/ ",
+                "GOTIFY_TOKEN": " app-token ",
+            }
+        )
+        self.assertIsNotNone(cfg)
+        self.assertEqual(cfg.base_url, "https://push.example.com")
+        self.assertEqual(cfg.token, "app-token")
