@@ -6,6 +6,7 @@ import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from inkypal.config import AIConfig
 from inkypal.faces import list_faces
 
 ROOT_ENDPOINTS = [
@@ -42,7 +43,12 @@ ROOT_ENDPOINTS = [
 ]
 
 
-def make_server(controller, host: str = "0.0.0.0", port: int = 0) -> ThreadingHTTPServer:
+def make_server(
+    controller,
+    host: str = "0.0.0.0",
+    port: int = 0,
+    ai_config: AIConfig | None = None,
+) -> ThreadingHTTPServer:
     """Create an API server bound to a random port by default."""
 
     class Handler(BaseHTTPRequestHandler):
@@ -101,6 +107,12 @@ def make_server(controller, host: str = "0.0.0.0", port: int = 0) -> ThreadingHT
             if face is None and content is None:
                 self._send_json(HTTPStatus.OK, controller.status_payload())
                 return
+
+            if content and ai_config is not None:
+                from inkypal.ai import transform_message
+
+                content = transform_message(content, ai_config)
+
             try:
                 controller.update(face=face, message=content)
             except ValueError as error:

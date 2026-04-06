@@ -6,7 +6,7 @@ import sys
 from threading import Event, Thread
 
 from inkypal.api import make_server
-from inkypal.config import IDLE_ANIMATION_SECONDS, get_configured_port
+from inkypal.config import IDLE_ANIMATION_SECONDS, get_ai_config, get_configured_port
 from inkypal.display import DisplayController, DisplayState
 from inkypal.faces import IDLE_FACES, resolve_face
 from inkypal.network import get_local_ip
@@ -27,6 +27,7 @@ def main() -> int:
 
     host = get_local_ip()
     port = get_configured_port()
+    ai_config = get_ai_config()
     epd = EPD()
     controller = DisplayController(
         epd=epd,
@@ -39,7 +40,7 @@ def main() -> int:
         ),
     )
 
-    server = make_server(controller, port=port)
+    server = make_server(controller, port=port, ai_config=ai_config)
     controller.state.port = server.server_address[1]
     stop_event = Event()
     idle_thread = Thread(target=run_idle_loop, args=(controller, stop_event), daemon=True)
