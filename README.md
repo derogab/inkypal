@@ -1,5 +1,9 @@
 # InkyPal
 
+<p align="center">
+  <img src=".github/assets/display.png" alt="InkyPal e-ink display" width="100%" />
+</p>
+
 `InkyPal` is a tiny smart companion on e-ink.
 
 It presents a friendly face, exposes a small HTTP API, and shows short updates on screen.
