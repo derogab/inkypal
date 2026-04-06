@@ -3,10 +3,10 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: .scripts/release-version.sh <version> <tag-message>
+Usage: release-version.sh <version> <tag-message>
 
 Example:
-  .scripts/release-version.sh 0.1.0 "InkyPal debut"
+  release-version.sh 0.1.0 "InkyPal debut"
 EOF
 }
 
@@ -18,6 +18,16 @@ fi
 version="${1#v}"
 tag="v${version}"
 tag_message="$2"
+
+if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  printf 'Version must look like X.Y.Z or vX.Y.Z.\n' >&2
+  exit 1
+fi
+
+if [[ -z "$tag_message" ]]; then
+  printf 'Tag message must not be empty.\n' >&2
+  exit 1
+fi
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
