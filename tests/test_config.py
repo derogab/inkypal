@@ -84,3 +84,13 @@ class AIConfigTests(TestCase):
             cfg.headers["X-OpenRouter-Categories"],
             "personal-agent,cli-agent",
         )
+
+    def test_openrouter_base_url_with_port_keeps_attribution_headers(self) -> None:
+        cfg = get_ai_config(
+            {
+                "OPENAI_API_KEY": "sk-test",
+                "OPENAI_BASE_URL": "https://openrouter.ai:443/api/v1",
+            }
+        )
+        self.assertEqual(cfg.headers["HTTP-Referer"], DEFAULT_OPENROUTER_REFERER)
+        self.assertEqual(cfg.headers["X-OpenRouter-Title"], DEFAULT_OPENROUTER_TITLE)

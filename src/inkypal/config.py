@@ -52,7 +52,7 @@ class AIConfig:
 
 def is_openrouter_base_url(base_url: str) -> bool:
     """Return ``True`` when *base_url* points to OpenRouter."""
-    return urlparse(base_url).netloc.lower() == "openrouter.ai"
+    return (urlparse(base_url).hostname or "").lower() == "openrouter.ai"
 
 
 def get_ai_config(env: Mapping[str, str] | None = None) -> AIConfig | None:
