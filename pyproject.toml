@@ -21,7 +21,7 @@ classifiers = [
 ]
 dependencies = [
   "Pillow>=10,<13",
-  "gpiozero>=2,<3",
+  "gpiozero>=2.0.1,<3",
   "spidev>=3.6,<4",
 ]
 
