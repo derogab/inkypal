@@ -1,4 +1,5 @@
 import json
+import logging
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from unittest import TestCase
@@ -158,6 +159,16 @@ class TransformMessageTests(TestCase):
         )
         result = transform_message("raw data", cfg)
         self.assertEqual(result, "raw data")
+
+    def test_logs_warning_on_connection_error(self) -> None:
+        cfg = AIConfig(
+            base_url="http://127.0.0.1:1",
+            api_key="sk-test",
+            model="m",
+        )
+        with self.assertLogs("inkypal.ai", level=logging.WARNING) as cm:
+            transform_message("raw data", cfg)
+        self.assertTrue(any("AI request failed" in msg for msg in cm.output))
 
     def test_fallback_on_bad_json(self) -> None:
         class BadJsonHandler(BaseHTTPRequestHandler):
