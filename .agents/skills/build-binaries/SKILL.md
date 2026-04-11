@@ -28,7 +28,7 @@ Run these commands from the repository root:
 
 ```bash
 bash .agents/skills/build-binaries/scripts/build-emulated-executable.sh linux/arm64 inkypal-linux-aarch64
-bash .agents/skills/build-emulated-executable.sh linux/amd64 inkypal-linux-x86_64
+bash .agents/skills/build-binaries/scripts/build-emulated-executable.sh linux/amd64 inkypal-linux-x86_64
 ```
 
 ## Helper behavior
