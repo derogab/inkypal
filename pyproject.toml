@@ -20,7 +20,7 @@ classifiers = [
   "Topic :: System :: Hardware :: Hardware Drivers",
 ]
 dependencies = [
-  "Pillow>=10,<13",
+  "Pillow>=12.2.0,<13",
   "gpiozero>=2.0.1,<3",
   "spidev>=3.8,<4",
 ]
