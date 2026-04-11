@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from unittest import TestCase
 
-from inkypal.ai import AI_REQUEST_MAX_TOKENS, AI_RESPONSE_MAX_CHARS, transform_message
+from inkypal.ai import AI_RESPONSE_MAX_CHARS, transform_message
 from inkypal.config import AIConfig
 
 
@@ -58,7 +58,7 @@ class TransformMessageTests(TestCase):
         body = server.last_request_body
         self.assertEqual(body["model"], "test-model")
         self.assertEqual(body["messages"][1]["content"], "temperature: 32C")
-        self.assertEqual(body["max_tokens"], AI_REQUEST_MAX_TOKENS)
+        self.assertNotIn("max_tokens", body)
         self.assertIn(
             f"Maximum {AI_RESPONSE_MAX_CHARS} characters",
             body["messages"][0]["content"],

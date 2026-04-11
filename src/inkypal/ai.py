@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import math
 import urllib.request
 from typing import TYPE_CHECKING
 
@@ -13,14 +12,7 @@ if TYPE_CHECKING:
     from inkypal.config import AIConfig
 
 _AI_RESPONSE_CHAR_MARGIN = 8
-_AI_TOKEN_BUDGET_CHARS_PER_TOKEN = 2
 AI_RESPONSE_MAX_CHARS = max(1, message_character_capacity() - _AI_RESPONSE_CHAR_MARGIN)
-# Short one-line replies are still tokenized more densely than raw characters,
-# so keep a conservative token budget instead of treating them as equivalent.
-AI_REQUEST_MAX_TOKENS = max(
-    24,
-    math.ceil(AI_RESPONSE_MAX_CHARS / _AI_TOKEN_BUDGET_CHARS_PER_TOKEN),
-)
 
 SYSTEM_PROMPT = (
     "You are InkyPal, a tiny friendly companion bot living on a small e-ink "
@@ -58,7 +50,6 @@ def transform_message(content: str, config: AIConfig) -> str:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": content},
             ],
-            "max_tokens": AI_REQUEST_MAX_TOKENS,
             "temperature": 0.7,
         }
     ).encode("utf-8")
