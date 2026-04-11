@@ -8,6 +8,7 @@ import re
 import urllib.request
 from typing import TYPE_CHECKING
 
+from inkypal import __version__ as _version
 from inkypal.render import ellipsize_text, message_character_capacity
 
 if TYPE_CHECKING:
@@ -62,6 +63,7 @@ def transform_message(content: str, config: AIConfig) -> str:
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {config.api_key}",
+        "User-Agent": f"InkyPal/{_version}",
     }
     headers.update(config.headers)
 
