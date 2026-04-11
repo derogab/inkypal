@@ -6,6 +6,8 @@ import urllib.parse
 import urllib.request
 from typing import TYPE_CHECKING
 
+from inkypal import __version__ as _version
+
 if TYPE_CHECKING:
     from inkypal.config import GotifyConfig
 
@@ -22,7 +24,10 @@ def send_message(message: str, config: GotifyConfig) -> None:
     request = urllib.request.Request(
         url,
         data=body,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": f"InkyPal/{_version}",
+        },
         method="POST",
     )
 

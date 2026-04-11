@@ -55,6 +55,7 @@ class GotifyTests(TestCase):
             server.last_headers["content-type"],
             "application/x-www-form-urlencoded",
         )
+        self.assertTrue(server.last_headers["user-agent"].startswith("InkyPal/"))
 
     def test_fallback_on_connection_error(self) -> None:
         send_message(
