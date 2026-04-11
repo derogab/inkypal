@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
 import urllib.request
 from typing import TYPE_CHECKING
 
@@ -30,7 +32,10 @@ SYSTEM_PROMPT = (
     "- If the input is unclear, do your best guess to summarise it.\n"
 )
 
+_log = logging.getLogger(__name__)
+
 _TIMEOUT_SECONDS = 10
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 def transform_message(content: str, config: AIConfig) -> str:
@@ -70,8 +75,10 @@ def transform_message(content: str, config: AIConfig) -> str:
     try:
         with urllib.request.urlopen(request, timeout=_TIMEOUT_SECONDS) as response:
             data = json.loads(response.read().decode("utf-8"))
-        text = data["choices"][0]["message"]["content"].strip().strip('"')
+        text = data["choices"][0]["message"]["content"]
+        text = _THINK_BLOCK_RE.sub("", text).strip().strip('"')
         text = ellipsize_text(" ".join(text.split()), AI_RESPONSE_MAX_CHARS)
         return text if text else content
-    except Exception:
+    except Exception as exc:
+        _log.warning("AI request failed: %s", exc)
         return content

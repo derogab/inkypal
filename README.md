@@ -24,6 +24,7 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 | `OPENROUTER_REFERER` | OpenRouter attribution URL override (optional). Used as `HTTP-Referer` when `OPENAI_BASE_URL` points to OpenRouter. | https://github.com/derogab/inkypal |
 | `OPENROUTER_TITLE` | OpenRouter attribution title override (optional). Used as `X-OpenRouter-Title` when `OPENAI_BASE_URL` points to OpenRouter. | InkyPal AI |
 | `OPENROUTER_CATEGORIES` | Comma-separated OpenRouter attribution categories (optional). Used as `X-OpenRouter-Categories` when `OPENAI_BASE_URL` points to OpenRouter. | - |
+| `DEBUG_MODE` | Enable verbose debug logging (optional). Accepts `1`, `true`, or `yes`. When enabled, every API request is logged. | - |
 
 When `OPENAI_BASE_URL` points to OpenRouter, `InkyPal` sends OpenRouter attribution headers by default using the repository URL and `InkyPal AI`. Set the `OPENROUTER_*` variables to override them.
 

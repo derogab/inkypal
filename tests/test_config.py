@@ -7,6 +7,7 @@ from inkypal.config import (
     DEFAULT_OPENROUTER_TITLE,
     get_ai_config,
     get_configured_port,
+    get_debug_mode,
     parse_port,
 )
 
@@ -29,6 +30,26 @@ class ConfigTests(TestCase):
 
     def test_get_configured_port_reads_mapping(self) -> None:
         self.assertEqual(get_configured_port({"INKYPAL_PORT": "9000"}), 9000)
+
+
+class DebugModeTests(TestCase):
+    def test_disabled_by_default(self) -> None:
+        self.assertFalse(get_debug_mode({}))
+
+    def test_enabled_with_true(self) -> None:
+        self.assertTrue(get_debug_mode({"DEBUG_MODE": "true"}))
+
+    def test_enabled_with_one(self) -> None:
+        self.assertTrue(get_debug_mode({"DEBUG_MODE": "1"}))
+
+    def test_enabled_with_yes(self) -> None:
+        self.assertTrue(get_debug_mode({"DEBUG_MODE": "yes"}))
+
+    def test_case_insensitive(self) -> None:
+        self.assertTrue(get_debug_mode({"DEBUG_MODE": "TRUE"}))
+
+    def test_disabled_with_arbitrary_string(self) -> None:
+        self.assertFalse(get_debug_mode({"DEBUG_MODE": "no"}))
 
 
 class AIConfigTests(TestCase):

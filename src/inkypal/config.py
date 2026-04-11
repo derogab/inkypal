@@ -36,6 +36,13 @@ def parse_port(value: str | None) -> int:
     return port
 
 
+def get_debug_mode(env: Mapping[str, str] | None = None) -> bool:
+    """Return ``True`` when ``DEBUG_MODE`` is enabled."""
+    if env is None:
+        env = os.environ
+    return env.get("DEBUG_MODE", "").strip().lower() in ("1", "true", "yes")
+
+
 def get_configured_port(env: Mapping[str, str] | None = None) -> int:
     """Read the configured API port from the environment."""
     if env is None:

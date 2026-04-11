@@ -1,4 +1,5 @@
 import json
+import logging
 from threading import Thread
 from unittest import TestCase
 
@@ -62,6 +63,34 @@ class ApiTests(TestCase):
         self.assertTrue(payload["running"])
         self.assertEqual(payload["port"], controller.state.port)
         self.assertEqual(payload["endpoints"], ROOT_ENDPOINTS)
+
+    def test_debug_log_emitted_for_request(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            with self.assertLogs("inkypal.api", level=logging.DEBUG) as cm:
+                with urllib.request.urlopen(f"http://127.0.0.1:{controller.state.port}/health") as response:
+                    response.read()
+            self.assertTrue(any("/health" in msg for msg in cm.output))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
 
     def test_message_endpoint_updates_face_and_content(self) -> None:
         controller = DisplayController(
