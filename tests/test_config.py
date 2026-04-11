@@ -3,6 +3,7 @@ from unittest import TestCase
 from inkypal.config import (
     DEFAULT_AI_BASE_URL,
     DEFAULT_AI_MODEL,
+    DEFAULT_OPENROUTER_CATEGORIES,
     DEFAULT_OPENROUTER_REFERER,
     DEFAULT_OPENROUTER_TITLE,
     get_ai_config,
@@ -67,7 +68,10 @@ class AIConfigTests(TestCase):
         self.assertEqual(cfg.model, DEFAULT_AI_MODEL)
         self.assertEqual(cfg.headers["HTTP-Referer"], DEFAULT_OPENROUTER_REFERER)
         self.assertEqual(cfg.headers["X-OpenRouter-Title"], DEFAULT_OPENROUTER_TITLE)
-        self.assertNotIn("X-OpenRouter-Categories", cfg.headers)
+        self.assertEqual(
+            cfg.headers["X-OpenRouter-Categories"],
+            DEFAULT_OPENROUTER_CATEGORIES,
+        )
 
     def test_custom_base_url_and_model(self) -> None:
         cfg = get_ai_config(
@@ -90,22 +94,6 @@ class AIConfigTests(TestCase):
         )
         self.assertEqual(cfg.base_url, "http://host/v1")
 
-    def test_openrouter_attribution_envs_override_defaults(self) -> None:
-        cfg = get_ai_config(
-            {
-                "OPENAI_API_KEY": "sk-test",
-                "OPENROUTER_REFERER": "https://example.com/app",
-                "OPENROUTER_TITLE": "Example App",
-                "OPENROUTER_CATEGORIES": "personal-agent,cli-agent",
-            }
-        )
-        self.assertEqual(cfg.headers["HTTP-Referer"], "https://example.com/app")
-        self.assertEqual(cfg.headers["X-OpenRouter-Title"], "Example App")
-        self.assertEqual(
-            cfg.headers["X-OpenRouter-Categories"],
-            "personal-agent,cli-agent",
-        )
-
     def test_openrouter_base_url_with_port_keeps_attribution_headers(self) -> None:
         cfg = get_ai_config(
             {
@@ -115,3 +103,7 @@ class AIConfigTests(TestCase):
         )
         self.assertEqual(cfg.headers["HTTP-Referer"], DEFAULT_OPENROUTER_REFERER)
         self.assertEqual(cfg.headers["X-OpenRouter-Title"], DEFAULT_OPENROUTER_TITLE)
+        self.assertEqual(
+            cfg.headers["X-OpenRouter-Categories"],
+            DEFAULT_OPENROUTER_CATEGORIES,
+        )
