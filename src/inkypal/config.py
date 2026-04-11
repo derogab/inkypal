@@ -59,6 +59,12 @@ class AIConfig:
     headers: Mapping[str, str] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class GotifyConfig:
+    base_url: str
+    token: str
+
+
 def is_openrouter_base_url(base_url: str) -> bool:
     """Return ``True`` when *base_url* points to OpenRouter."""
     return (urlparse(base_url).hostname or "").lower() == "openrouter.ai"
@@ -92,3 +98,17 @@ def get_ai_config(env: Mapping[str, str] | None = None) -> AIConfig | None:
         model=model,
         headers=headers,
     )
+
+
+def get_gotify_config(env: Mapping[str, str] | None = None) -> GotifyConfig | None:
+    """Read optional Gotify configuration from the environment."""
+    if env is None:
+        env = os.environ
+
+    base_url = env.get("GOTIFY_URL", "").strip().rstrip("/")
+    token = env.get("GOTIFY_TOKEN", "").strip()
+
+    if not base_url or not token:
+        return None
+
+    return GotifyConfig(base_url=base_url, token=token)

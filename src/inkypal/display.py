@@ -37,6 +37,7 @@ class DisplayController:
         now: Callable[[], float] = monotonic,
         idle_faces: Sequence[str] = IDLE_FACES,
         override_seconds: int = DISPLAY_OVERRIDE_SECONDS,
+        message_sink: Callable[[str], None] | None = None,
     ) -> None:
         self._epd = epd
         self._state = state
@@ -48,6 +49,7 @@ class DisplayController:
         self._idle_faces = tuple(idle_faces)
         self._override_seconds = override_seconds
         self._idle_index = 0
+        self._message_sink = message_sink
 
         if state.face in self._idle_faces:
             self._idle_index = (self._idle_faces.index(state.face) + 1) % len(self._idle_faces)
@@ -85,6 +87,7 @@ class DisplayController:
         face: str | None = None,
         message: str | None = None,
     ) -> DisplayState:
+        message_to_forward = None
         with self._lock:
             if face is not None:
                 face_name, _ = resolve_face(face)
@@ -94,12 +97,19 @@ class DisplayController:
 
             if message is not None:
                 self._state.message = message
+                if message:
+                    message_to_forward = message
 
             self._refresh_override_until()
 
             self._powered_off = False
             self._render(self._state, partial=self._ready_for_partial)
-            return self._state
+            state = self._state
+
+        if message_to_forward is not None and self._message_sink is not None:
+            self._message_sink(message_to_forward)
+
+        return state
 
     def animate(self) -> None:
         with self._lock:

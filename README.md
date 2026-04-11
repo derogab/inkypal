@@ -18,6 +18,8 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `INKYPAL_PORT` | Fixed API port (optional). If not set, a random free port is used. | - |
+| `GOTIFY_URL` | Gotify server base URL (optional). When set together with `GOTIFY_TOKEN`, non-empty messages shown by `POST /message` are also forwarded to Gotify. | - |
+| `GOTIFY_TOKEN` | Gotify application token (optional). Used together with `GOTIFY_URL` to forward displayed messages to Gotify. | - |
 | `OPENAI_API_KEY` | API key to enable AI message transformation (optional). When set, content sent to `POST /message` is rewritten into a short friendly sentence before being displayed. Any OpenAI-compatible v1 provider works ([OpenRouter](https://openrouter.ai), OpenAI, local LLMs, etc.). | - |
 | `OPENAI_BASE_URL` | Base URL for the OpenAI-compatible API (optional). | https://openrouter.ai/api/v1 |
 | `OPENAI_MODEL` | Model to use for AI message transformation (optional). | auto |
@@ -56,6 +58,10 @@ Create `/etc/inkypal.env`:
 sudo tee /etc/inkypal.env >/dev/null <<'EOF'
 # Optional: set a fixed API port instead of a random one.
 # INKYPAL_PORT=8080
+
+# Optional: forward displayed messages to Gotify.
+# GOTIFY_URL=https://push.example.com
+# GOTIFY_TOKEN=your-app-token
 
 # Optional: enable AI message transformation.
 # OPENAI_API_KEY=sk-...
@@ -169,6 +175,8 @@ JSON body fields:
 - `content` - optional message shown below the face
 
 When AI is configured (see `OPENAI_API_KEY` above), the `content` value is automatically transformed into a short friendly sentence before being displayed. If AI is not configured, the raw content is shown as-is.
+
+When `GOTIFY_URL` and `GOTIFY_TOKEN` are both configured, the final non-empty message shown on the display is also forwarded to Gotify. If AI is enabled, Gotify receives the transformed display text.
 
 Unknown built-in face names return `400`. Use `GET /faces` as the source of truth for the current built-in list.
 

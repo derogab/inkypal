@@ -150,6 +150,41 @@ class DisplayControllerTests(TestCase):
         self.assertTrue(controller.state.update_available)
         self.assertEqual(epd.operations, [])
 
+    def test_update_forwards_non_empty_message_to_sink(self) -> None:
+        forwarded: list[str] = []
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face=IDLE_FACES[1],
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=8080,
+            ),
+            message_sink=forwarded.append,
+        )
+
+        controller.update(message="hello")
+        self.assertEqual(forwarded, ["hello"])
+
+    def test_update_skips_sink_for_empty_message_and_face_only(self) -> None:
+        forwarded: list[str] = []
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face=IDLE_FACES[1],
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=8080,
+            ),
+            message_sink=forwarded.append,
+        )
+
+        controller.update(face="love")
+        controller.update(message="")
+        self.assertEqual(forwarded, [])
+
     def test_power_off_pauses_idle_animation(self) -> None:
         epd = FakeEpd()
         controller = DisplayController(
