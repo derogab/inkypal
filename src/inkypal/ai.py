@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
 import urllib.request
 from typing import TYPE_CHECKING
 
+from inkypal import __version__ as _version
+from inkypal.render import ellipsize_text, message_character_capacity
+
 if TYPE_CHECKING:
     from inkypal.config import AIConfig
+
+_AI_RESPONSE_CHAR_MARGIN = 8
+AI_RESPONSE_MAX_CHARS = max(1, message_character_capacity() - _AI_RESPONSE_CHAR_MARGIN)
 
 SYSTEM_PROMPT = (
     "You are InkyPal, a tiny friendly companion bot living on a small e-ink "
@@ -16,7 +24,7 @@ SYSTEM_PROMPT = (
     "about the content, as if you are their little buddy telling them what "
     "is going on.\n\n"
     "Rules:\n"
-    "- Maximum 60 characters. Brevity is essential.\n"
+    f"- Maximum {AI_RESPONSE_MAX_CHARS} characters so it fits the display.\n"
     "- Write exactly ONE short sentence — no line breaks.\n"
     "- Sound warm, cheerful, and concise — like a helpful little pal.\n"
     "- Do NOT use emoji.\n"
@@ -25,7 +33,10 @@ SYSTEM_PROMPT = (
     "- If the input is unclear, do your best guess to summarise it.\n"
 )
 
+_log = logging.getLogger(__name__)
+
 _TIMEOUT_SECONDS = 10
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 def transform_message(content: str, config: AIConfig) -> str:
@@ -45,7 +56,6 @@ def transform_message(content: str, config: AIConfig) -> str:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": content},
             ],
-            "max_tokens": 60,
             "temperature": 0.7,
         }
     ).encode("utf-8")
@@ -53,6 +63,7 @@ def transform_message(content: str, config: AIConfig) -> str:
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {config.api_key}",
+        "User-Agent": f"InkyPal/{_version}",
     }
     headers.update(config.headers)
 
@@ -66,7 +77,10 @@ def transform_message(content: str, config: AIConfig) -> str:
     try:
         with urllib.request.urlopen(request, timeout=_TIMEOUT_SECONDS) as response:
             data = json.loads(response.read().decode("utf-8"))
-        text = data["choices"][0]["message"]["content"].strip().strip('"')
+        text = data["choices"][0]["message"]["content"]
+        text = _THINK_BLOCK_RE.sub("", text).strip().strip('"')
+        text = ellipsize_text(" ".join(text.split()), AI_RESPONSE_MAX_CHARS)
         return text if text else content
-    except Exception:
+    except Exception as exc:
+        _log.warning("AI request failed: %s", exc)
         return content

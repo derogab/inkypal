@@ -15,6 +15,7 @@ DEFAULT_AI_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_AI_MODEL = "auto"
 DEFAULT_OPENROUTER_REFERER = "https://github.com/derogab/inkypal"
 DEFAULT_OPENROUTER_TITLE = "InkyPal AI"
+DEFAULT_OPENROUTER_CATEGORIES = "personal-agent,roleplay"
 
 
 def parse_port(value: str | None) -> int:
@@ -34,6 +35,13 @@ def parse_port(value: str | None) -> int:
         raise ValueError("INKYPAL_PORT must be between 1 and 65535")
 
     return port
+
+
+def get_debug_mode(env: Mapping[str, str] | None = None) -> bool:
+    """Return ``True`` when ``DEBUG_MODE`` is enabled."""
+    if env is None:
+        env = os.environ
+    return env.get("DEBUG_MODE", "").strip().lower() in ("1", "true", "yes")
 
 
 def get_configured_port(env: Mapping[str, str] | None = None) -> int:
@@ -80,18 +88,9 @@ def get_ai_config(env: Mapping[str, str] | None = None) -> AIConfig | None:
     headers: dict[str, str] = {}
 
     if is_openrouter_base_url(base_url):
-        headers["HTTP-Referer"] = (
-            env.get("OPENROUTER_REFERER", "").strip()
-            or DEFAULT_OPENROUTER_REFERER
-        )
-        headers["X-OpenRouter-Title"] = (
-            env.get("OPENROUTER_TITLE", "").strip()
-            or DEFAULT_OPENROUTER_TITLE
-        )
-
-        categories = env.get("OPENROUTER_CATEGORIES", "").strip()
-        if categories:
-            headers["X-OpenRouter-Categories"] = categories
+        headers["HTTP-Referer"] = DEFAULT_OPENROUTER_REFERER
+        headers["X-OpenRouter-Title"] = DEFAULT_OPENROUTER_TITLE
+        headers["X-OpenRouter-Categories"] = DEFAULT_OPENROUTER_CATEGORIES
 
     return AIConfig(
         base_url=base_url.rstrip("/"),

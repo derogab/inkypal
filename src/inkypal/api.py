@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -41,6 +42,9 @@ ROOT_ENDPOINTS = [
         "description": "Clear the display to white and pause idle animation",
     },
 ]
+
+
+_log = logging.getLogger(__name__)
 
 
 def make_server(
@@ -121,7 +125,7 @@ def make_server(
             self._send_json(HTTPStatus.OK, controller.status_payload())
 
         def log_message(self, format: str, *args) -> None:  # noqa: A003
-            return
+            _log.debug(format, *args)
 
         def _read_json(self) -> dict | None:
             length = int(self.headers.get("Content-Length", "0"))

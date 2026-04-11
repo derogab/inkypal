@@ -1,9 +1,10 @@
 import json
+import logging
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from unittest import TestCase
 
-from inkypal.ai import transform_message
+from inkypal.ai import AI_RESPONSE_MAX_CHARS, transform_message
 from inkypal.config import AIConfig
 
 
@@ -58,6 +59,11 @@ class TransformMessageTests(TestCase):
         body = server.last_request_body
         self.assertEqual(body["model"], "test-model")
         self.assertEqual(body["messages"][1]["content"], "temperature: 32C")
+        self.assertNotIn("max_tokens", body)
+        self.assertIn(
+            f"Maximum {AI_RESPONSE_MAX_CHARS} characters",
+            body["messages"][0]["content"],
+        )
 
     def test_strips_surrounding_quotes(self) -> None:
         class QuotedHandler(_FakeCompletionHandler):
@@ -78,6 +84,27 @@ class TransformMessageTests(TestCase):
         thread.join(timeout=2)
 
         self.assertEqual(result, "Looking warm at 32C!")
+
+    def test_clamps_long_responses_to_display_safe_length(self) -> None:
+        class LongHandler(_FakeCompletionHandler):
+            response_text = "x" * (AI_RESPONSE_MAX_CHARS + 10)
+
+        server = HTTPServer(("127.0.0.1", 0), LongHandler)
+        port = server.server_address[1]
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        cfg = AIConfig(
+            base_url=f"http://127.0.0.1:{port}",
+            api_key="sk-test",
+            model="m",
+        )
+        result = transform_message("temp 32", cfg)
+        server.server_close()
+        thread.join(timeout=2)
+
+        self.assertEqual(len(result), AI_RESPONSE_MAX_CHARS)
+        self.assertTrue(result.endswith("…"))
 
     def test_sends_configured_headers(self) -> None:
         server = HTTPServer(("127.0.0.1", 0), _FakeCompletionHandler)
@@ -104,6 +131,26 @@ class TransformMessageTests(TestCase):
         self.assertEqual(headers["x-openrouter-title"], "InkyPal AI")
         self.assertEqual(headers["x-openrouter-categories"], "personal-agent")
 
+    def test_strips_think_blocks_from_reasoning_models(self) -> None:
+        class ThinkHandler(_FakeCompletionHandler):
+            response_text = "<think>Let me reason about this...</think>It is sunny!"
+
+        server = HTTPServer(("127.0.0.1", 0), ThinkHandler)
+        port = server.server_address[1]
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        cfg = AIConfig(
+            base_url=f"http://127.0.0.1:{port}",
+            api_key="sk-test",
+            model="m",
+        )
+        result = transform_message("weather", cfg)
+        server.server_close()
+        thread.join(timeout=2)
+
+        self.assertEqual(result, "It is sunny!")
+
     def test_fallback_on_connection_error(self) -> None:
         cfg = AIConfig(
             base_url="http://127.0.0.1:1",
@@ -112,6 +159,16 @@ class TransformMessageTests(TestCase):
         )
         result = transform_message("raw data", cfg)
         self.assertEqual(result, "raw data")
+
+    def test_logs_warning_on_connection_error(self) -> None:
+        cfg = AIConfig(
+            base_url="http://127.0.0.1:1",
+            api_key="sk-test",
+            model="m",
+        )
+        with self.assertLogs("inkypal.ai", level=logging.WARNING) as cm:
+            transform_message("raw data", cfg)
+        self.assertTrue(any("AI request failed" in msg for msg in cm.output))
 
     def test_fallback_on_bad_json(self) -> None:
         class BadJsonHandler(BaseHTTPRequestHandler):

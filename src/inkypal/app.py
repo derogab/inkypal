@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from functools import partial
 from threading import Event, Thread
 from time import monotonic
 
 from inkypal.api import make_server
-from inkypal.config import IDLE_ANIMATION_SECONDS, UPDATE_CHECK_INTERVAL_SECONDS, get_ai_config, get_configured_port, get_gotify_config
+from inkypal.config import IDLE_ANIMATION_SECONDS, UPDATE_CHECK_INTERVAL_SECONDS, get_ai_config, get_configured_port, get_debug_mode, get_gotify_config
 from inkypal.display import DisplayController, DisplayState
 from inkypal.faces import IDLE_FACES, resolve_face
 from inkypal.gotify import send_message
@@ -32,6 +33,11 @@ def run_idle_loop(controller: DisplayController, stop_event: Event) -> None:
 
 
 def main() -> int:
+    logging.basicConfig(
+        level=logging.DEBUG if get_debug_mode() else logging.WARNING,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
     face_name, _ = resolve_face(IDLE_FACES[1])
     from inkypal.waveshare_v4 import EPD
 
