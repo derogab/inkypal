@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import urllib.request
 from typing import TYPE_CHECKING
 
@@ -31,6 +32,7 @@ SYSTEM_PROMPT = (
 )
 
 _TIMEOUT_SECONDS = 10
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 def transform_message(content: str, config: AIConfig) -> str:
@@ -70,7 +72,8 @@ def transform_message(content: str, config: AIConfig) -> str:
     try:
         with urllib.request.urlopen(request, timeout=_TIMEOUT_SECONDS) as response:
             data = json.loads(response.read().decode("utf-8"))
-        text = data["choices"][0]["message"]["content"].strip().strip('"')
+        text = data["choices"][0]["message"]["content"]
+        text = _THINK_BLOCK_RE.sub("", text).strip().strip('"')
         text = ellipsize_text(" ".join(text.split()), AI_RESPONSE_MAX_CHARS)
         return text if text else content
     except Exception:
