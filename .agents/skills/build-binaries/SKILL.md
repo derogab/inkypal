@@ -4,33 +4,47 @@ description: Build Linux executables using PyInstaller inside a container. Use w
 compatibility: Prefers Apple Container, then Docker, then Podman. Requires a container runtime for cross-platform Linux builds.
 ---
 
-Use this skill when the user asks to build InkyPal binaries locally.
+Use this skill when the user asks to build InkyPal Linux executables locally.
 
 ## Goal
 
-Build Linux executables with PyInstaller, producing the same artifacts as the CI release workflow:
+Produce these Linux binary artifacts:
 
-| Platform            | Arch       | Output file                    |
-|---------------------|------------|--------------------------------|
-| `linux/arm64`       | `aarch64`  | `dist/inkypal-linux-aarch64`   |
-| `linux/amd64`       | `x86_64`   | `dist/inkypal-linux-x86_64`    |
-| `linux/arm/v7`      | `armv7`    | `dist/inkypal-linux-armv7`     |
+| Platform        | Arch      | Output file                  |
+|-----------------|-----------|------------------------------|
+| `linux/arm64`   | `aarch64` | `dist/inkypal-linux-aarch64` |
+| `linux/amd64`   | `x86_64`  | `dist/inkypal-linux-x86_64`  |
 
-All outputs go into the `dist/` directory (already gitignored).
+All outputs go in `dist/`.
 
 ## Target selection
 
-By default, build all three platforms. If only the host-native platform is desired, build just that one.
+Build both targets by default. If the user only wants the host-native Linux target, build just that one.
+
+## Shared helper
+
+Use `scripts/build-emulated-executable.sh` for containerized builds.
+
+```bash
+bash .agents/skills/build-binaries/scripts/build-emulated-executable.sh <platform> <artifact_name>
+```
+
+The helper checks runtimes in this order and picks the first supported option:
+
+1. `container`
+2. `docker`
+3. `podman`
+
+Artifact mapping:
+
+| Platform        | Artifact name              |
+|-----------------|----------------------------|
+| `linux/amd64`   | `inkypal-linux-x86_64`     |
+| `linux/arm64`   | `inkypal-linux-aarch64`    |
 
 ## Runtime selection
 
-Pick the first available option in this exact order:
-
-1. Apple Container: `container`
-2. Docker: `docker`
-3. Podman: `podman`
-
-Checks:
+Check availability in this order:
 
 ```bash
 command -v container
@@ -44,29 +58,23 @@ If `container` is installed but not running yet, start it before retrying:
 container system start
 ```
 
-## Build command
+For both supported targets, use the first available runtime in this order: `container`, then `docker`, then `podman`.
 
-The PyInstaller command is the same across all runtimes and all platforms. Only the container invocation and the platform/arch flag differ.
+The helper follows this order automatically.
 
-The build runs inside a `debian:trixie` container that installs the required system and Python dependencies, then invokes PyInstaller:
+## Docker and Podman notes
+
+The Docker and Podman build commands expect QEMU support for cross-architecture builds.
+
+For Docker, register QEMU before cross-arch builds if it is not already available:
 
 ```bash
-python3 -m PyInstaller \
-  --clean \
-  --onefile \
-  --name inkypal \
-  --paths src \
-  --collect-submodules gpiozero.pins \
-  --collect-data jaraco.text \
-  --hidden-import lgpio \
-  src/inkypal/__main__.py
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 ```
 
-The resulting binary is copied from the container's `dist/inkypal` to the host at `dist/<artifact_name>`.
+## Apple Container
 
-### Apple Container
-
-Apple Container uses `--arch` instead of `--platform`. Supported values are at least `arm64` and `amd64` (via Rosetta on Apple Silicon). Building `arm/v7` is not supported.
+Apple Container uses `--arch` instead of `--platform`. It can build `linux/arm64` and `linux/amd64`.
 
 For `linux/arm64`:
 
@@ -132,64 +140,10 @@ container run --rm --arch amd64 \
   '
 ```
 
-### Docker
-
-Docker uses `--platform` and requires QEMU for cross-architecture builds via `docker/setup-qemu-action` or manual QEMU setup.
-
-For any platform (`linux/amd64`, `linux/arm64`, `linux/arm/v7`):
-
-```bash
-mkdir -p dist
-docker run --rm --platform <PLATFORM> \
-  -v "$PWD:/work" -w /work \
-  debian:trixie bash -lc '
-    apt-get update &&
-    apt-get install -y ca-certificates &&
-    echo "deb [trusted=yes] https://archive.raspberrypi.com/debian trixie main" > /etc/apt/sources.list.d/raspi.list &&
-    apt-get update &&
-    apt-get install -y \
-      gcc \
-      python3 \
-      python3-pyinstaller \
-      python3-pil \
-      python3-gpiozero \
-      python3-spidev \
-      python3-lgpio &&
-    python3 -m PyInstaller \
-      --clean \
-      --onefile \
-      --name inkypal \
-      --paths src \
-      --collect-submodules gpiozero.pins \
-      --collect-data jaraco.text \
-      --hidden-import lgpio \
-      src/inkypal/__main__.py &&
-    cp dist/inkypal /work/dist/<ARTIFACT_NAME>
-  '
-```
-
-Map platform to artifact name:
-
-| `--platform` value  | `<ARTIFACT_NAME>`           |
-|---------------------|-----------------------------|
-| `linux/amd64`       | `inkypal-linux-x86_64`      |
-| `linux/arm64`       | `inkypal-linux-aarch64`     |
-| `linux/arm/v7`      | `inkypal-linux-armv7`       |
-
-Before running Docker cross-arch builds, ensure QEMU is registered:
-
-```bash
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-```
-
-### Podman
-
-Identical to Docker but replace `docker` with `podman`. Podman also needs QEMU for cross-architecture builds.
-
 ## Verification
 
 After building:
 
 1. Confirm each expected file exists in `dist/`.
-2. Check file sizes are reasonable (several MB for a PyInstaller onefile binary).
-3. If on Linux, test the native binary: `./dist/inkypal-linux-<arch> --help`.
+2. Check file sizes are reasonable for PyInstaller onefile binaries.
+3. If a native Linux target was built on Linux, smoke-test it with `./dist/inkypal-linux-<arch> --help`.
