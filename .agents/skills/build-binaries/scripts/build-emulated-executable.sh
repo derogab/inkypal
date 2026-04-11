@@ -37,6 +37,7 @@ build_with_container() {
   mkdir -p dist
   container run --rm --arch "$arch" \
     -v "$PWD:/work" -w /work \
+    -e "ARTIFACT_NAME=$artifact_name" \
     debian:trixie bash -lc '
       apt-get update &&
       apt-get install -y ca-certificates &&
@@ -59,7 +60,7 @@ build_with_container() {
         --collect-data jaraco.text \
         --hidden-import lgpio \
         src/inkypal/__main__.py &&
-      cp dist/inkypal /work/dist/'"$artifact_name"'
+      cp dist/inkypal "/work/dist/${ARTIFACT_NAME}"
     '
 }
 
@@ -71,6 +72,7 @@ build_with_docker_like() {
   mkdir -p dist
   "$runtime" run --rm --platform "$platform" \
     -v "$PWD:/work" -w /work \
+    -e "ARTIFACT_NAME=$artifact_name" \
     debian:trixie bash -lc '
       apt-get update &&
       apt-get install -y ca-certificates &&
@@ -93,7 +95,7 @@ build_with_docker_like() {
         --collect-data jaraco.text \
         --hidden-import lgpio \
         src/inkypal/__main__.py &&
-      cp dist/inkypal /work/dist/'"$artifact_name"'
+      cp dist/inkypal "/work/dist/${ARTIFACT_NAME}"
     '
 }
 
