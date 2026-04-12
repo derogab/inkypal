@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from unittest import TestCase
 
-from inkypal.ai import AI_RESPONSE_MAX_CHARS, transform_message
+from inkypal.ai import AI_RESPONSE_MAX_CHARS, AIResponse, transform_message
 from inkypal.config import AIConfig
 
 
@@ -38,7 +38,9 @@ class _FakeCompletionHandler(BaseHTTPRequestHandler):
 class TransformMessageTests(TestCase):
     def test_empty_content_returns_unchanged(self) -> None:
         cfg = AIConfig(base_url="http://localhost", api_key="k", model="m")
-        self.assertEqual(transform_message("", cfg), "")
+        result = transform_message("", cfg)
+        self.assertEqual(result.message, "")
+        self.assertIsNone(result.face)
 
     def test_successful_transformation(self) -> None:
         server = HTTPServer(("127.0.0.1", 0), _FakeCompletionHandler)
@@ -55,7 +57,8 @@ class TransformMessageTests(TestCase):
         server.server_close()
         thread.join(timeout=2)
 
-        self.assertEqual(result, "Hey, it is 32C out there!")
+        self.assertEqual(result.message, "Hey, it is 32C out there!")
+        self.assertIsNone(result.face)
         body = server.last_request_body
         self.assertEqual(body["model"], "test-model")
         self.assertEqual(body["messages"][1]["content"], "temperature: 32C")
@@ -83,7 +86,7 @@ class TransformMessageTests(TestCase):
         server.server_close()
         thread.join(timeout=2)
 
-        self.assertEqual(result, "Looking warm at 32C!")
+        self.assertEqual(result.message, "Looking warm at 32C!")
 
     def test_clamps_long_responses_to_display_safe_length(self) -> None:
         class LongHandler(_FakeCompletionHandler):
@@ -103,8 +106,8 @@ class TransformMessageTests(TestCase):
         server.server_close()
         thread.join(timeout=2)
 
-        self.assertEqual(len(result), AI_RESPONSE_MAX_CHARS)
-        self.assertTrue(result.endswith("…"))
+        self.assertEqual(len(result.message), AI_RESPONSE_MAX_CHARS)
+        self.assertTrue(result.message.endswith("…"))
 
     def test_sends_configured_headers(self) -> None:
         server = HTTPServer(("127.0.0.1", 0), _FakeCompletionHandler)
@@ -149,7 +152,7 @@ class TransformMessageTests(TestCase):
         server.server_close()
         thread.join(timeout=2)
 
-        self.assertEqual(result, "It is sunny!")
+        self.assertEqual(result.message, "It is sunny!")
 
     def test_fallback_on_connection_error(self) -> None:
         cfg = AIConfig(
@@ -158,7 +161,8 @@ class TransformMessageTests(TestCase):
             model="m",
         )
         result = transform_message("raw data", cfg)
-        self.assertEqual(result, "raw data")
+        self.assertEqual(result.message, "raw data")
+        self.assertIsNone(result.face)
 
     def test_logs_warning_on_connection_error(self) -> None:
         cfg = AIConfig(
@@ -196,4 +200,103 @@ class TransformMessageTests(TestCase):
         server.server_close()
         thread.join(timeout=2)
 
-        self.assertEqual(result, "raw data")
+        self.assertEqual(result.message, "raw data")
+        self.assertIsNone(result.face)
+
+
+class SmartFaceTests(TestCase):
+    def test_parses_face_tag_from_response(self) -> None:
+        class FaceHandler(_FakeCompletionHandler):
+            response_text = "[excited] Warm day ahead!"
+
+        server = HTTPServer(("127.0.0.1", 0), FaceHandler)
+        port = server.server_address[1]
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        cfg = AIConfig(
+            base_url=f"http://127.0.0.1:{port}",
+            api_key="sk-test",
+            model="m",
+        )
+        result = transform_message("temperature: 32C", cfg)
+        server.server_close()
+        thread.join(timeout=2)
+
+        self.assertEqual(result.face, "excited")
+        self.assertEqual(result.message, "Warm day ahead!")
+
+    def test_unknown_face_tag_ignored(self) -> None:
+        class UnknownFaceHandler(_FakeCompletionHandler):
+            response_text = "[robot] Beep boop!"
+
+        server = HTTPServer(("127.0.0.1", 0), UnknownFaceHandler)
+        port = server.server_address[1]
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        cfg = AIConfig(
+            base_url=f"http://127.0.0.1:{port}",
+            api_key="sk-test",
+            model="m",
+        )
+        result = transform_message("hello", cfg)
+        server.server_close()
+        thread.join(timeout=2)
+
+        self.assertIsNone(result.face)
+        self.assertEqual(result.message, "[robot] Beep boop!")
+
+    def test_missing_face_tag_returns_no_face(self) -> None:
+        server = HTTPServer(("127.0.0.1", 0), _FakeCompletionHandler)
+        port = server.server_address[1]
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        cfg = AIConfig(
+            base_url=f"http://127.0.0.1:{port}",
+            api_key="sk-test",
+            model="m",
+        )
+        result = transform_message("temperature: 32C", cfg)
+        server.server_close()
+        thread.join(timeout=2)
+
+        self.assertIsNone(result.face)
+        self.assertEqual(result.message, "Hey, it is 32C out there!")
+
+    def test_face_tag_with_think_block(self) -> None:
+        class ThinkFaceHandler(_FakeCompletionHandler):
+            response_text = "<think>hmm</think>[sad] Bad news today"
+
+        server = HTTPServer(("127.0.0.1", 0), ThinkFaceHandler)
+        port = server.server_address[1]
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        cfg = AIConfig(
+            base_url=f"http://127.0.0.1:{port}",
+            api_key="sk-test",
+            model="m",
+        )
+        result = transform_message("bad stuff", cfg)
+        server.server_close()
+        thread.join(timeout=2)
+
+        self.assertEqual(result.face, "sad")
+        self.assertEqual(result.message, "Bad news today")
+
+    def test_prompt_lists_available_faces(self) -> None:
+        from inkypal.ai import AI_FACE_MOODS, SYSTEM_PROMPT
+
+        for face_name in AI_FACE_MOODS:
+            self.assertIn(face_name, SYSTEM_PROMPT)
+
+    def test_all_ai_faces_are_valid(self) -> None:
+        from inkypal.ai import AI_FACE_MOODS
+        from inkypal.faces import resolve_face
+
+        for face_name in AI_FACE_MOODS:
+            key, text = resolve_face(face_name)
+            self.assertEqual(key, face_name)
+            self.assertTrue(text)

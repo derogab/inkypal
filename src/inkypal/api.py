@@ -115,7 +115,10 @@ def make_server(
             if content and ai_config is not None:
                 from inkypal.ai import transform_message
 
-                content = transform_message(content, ai_config)
+                ai_result = transform_message(content, ai_config)
+                content = ai_result.message
+                if face is None:
+                    face = ai_result.face
 
             try:
                 controller.update(face=face, message=content)
