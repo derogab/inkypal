@@ -56,7 +56,7 @@ SYSTEM_PROMPT = (
 
 _log = logging.getLogger(__name__)
 
-_TIMEOUT_SECONDS = 10
+_TIMEOUT_SECONDS = 30
 _THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 _FACE_TAG_RE = re.compile(r"^\[(\w+)\]\s*(.*)", re.DOTALL)
 
