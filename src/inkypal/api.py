@@ -120,6 +120,7 @@ def make_server(
                 self._send_json(HTTPStatus.OK, controller.status_payload())
                 return
 
+            original_content = content
             if content and ai_config is not None:
                 from inkypal.ai import transform_message
 
@@ -135,7 +136,7 @@ def make_server(
                 except ValueError:
                     face = "happy"
 
-            controller.update(face=face, message=content)
+            controller.update(face=face, message=content, notification_message=original_content)
             self._send_json(HTTPStatus.OK, controller.status_payload())
 
         def log_message(self, format: str, *args) -> None:  # noqa: A003
