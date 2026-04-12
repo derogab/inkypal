@@ -8,7 +8,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from inkypal.config import AIConfig
-from inkypal.faces import list_faces
+from inkypal.faces import list_faces, resolve_face
 
 ROOT_ENDPOINTS = [
     {
@@ -108,6 +108,14 @@ def make_server(
 
             face = payload.get("face")
             content = payload.get("content")
+
+            # Discard unknown user face so the AI can choose instead
+            if face is not None:
+                try:
+                    resolve_face(face)
+                except ValueError:
+                    face = None
+
             if face is None and content is None:
                 self._send_json(HTTPStatus.OK, controller.status_payload())
                 return
@@ -115,13 +123,19 @@ def make_server(
             if content and ai_config is not None:
                 from inkypal.ai import transform_message
 
-                content = transform_message(content, ai_config)
+                ai_result = transform_message(content, ai_config)
+                content = ai_result.message
+                if face is None:
+                    face = ai_result.face
 
-            try:
-                controller.update(face=face, message=content)
-            except ValueError as error:
-                self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
-                return
+            # Fall back to default face if AI returned an unknown one
+            if face is not None:
+                try:
+                    resolve_face(face)
+                except ValueError:
+                    face = "happy"
+
+            controller.update(face=face, message=content)
             self._send_json(HTTPStatus.OK, controller.status_payload())
 
         def log_message(self, format: str, *args) -> None:  # noqa: A003
