@@ -13,6 +13,26 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 - Raspberry Pi Zero 2 W H (SPI enabled on Raspberry Pi OS)
 - Waveshare 2.13 inch e-Paper Display V4
 
+## Faces
+
+| Preview | Name | Mood |
+|---------|------|------|
+| `(O_O)` | alert | Surprised or alarming |
+| `(>_<)` | angry | Frustrated or upset |
+| `(B_B)` | cool | Impressive or chill |
+| `(o_O)` | curious | Intrigued or wondering |
+| `(x_x)` | debug | Error or crash |
+| `(^_^)` | excited | Enthusiastic or great news |
+| `(o_o)` | happy | Friendly, positive, or neutral (default) |
+| `(o3o)` | love | Heartwarming or affectionate |
+| `(O_o)` | look_left | Idle animation |
+| `(o_o)` | look_center | Idle animation |
+| `(o_O)` | look_right | Idle animation |
+| `(u_u)` | sad | Disappointing or bad news |
+| `(-_-)` | sleepy | Tired, calm, or bored |
+
+When AI is enabled, InkyPal automatically picks a face that matches the tone of its message. You can also set a face manually via the `POST /message` API.
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -178,7 +198,7 @@ When AI is configured (see `OPENAI_API_KEY` above), the `content` value is autom
 
 When `GOTIFY_URL` and `GOTIFY_TOKEN` are both configured, the final non-empty message shown on the display is also forwarded to Gotify. If AI is enabled, Gotify receives the transformed display text.
 
-Unknown built-in face names return `400`. Use `GET /faces` as the source of truth for the current built-in list.
+When AI is configured, it also picks a face expression that matches the tone of its response. If you provide an explicit `face` in the request, your choice takes priority. Unknown face names are silently ignored.
 
 Example with a built-in face:
 
