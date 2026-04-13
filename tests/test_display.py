@@ -185,6 +185,24 @@ class DisplayControllerTests(TestCase):
         controller.update(message="")
         self.assertEqual(forwarded, [])
 
+    def test_update_forwards_notification_message_to_sink(self) -> None:
+        forwarded: list[str] = []
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face=IDLE_FACES[1],
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=8080,
+            ),
+            message_sink=forwarded.append,
+        )
+
+        controller.update(message="short", notification_message="the full original message")
+        self.assertEqual(controller.state.message, "short")
+        self.assertEqual(forwarded, ["the full original message"])
+
     def test_power_off_pauses_idle_animation(self) -> None:
         epd = FakeEpd()
         controller = DisplayController(

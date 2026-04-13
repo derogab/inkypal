@@ -86,6 +86,7 @@ class DisplayController:
         *,
         face: str | None = None,
         message: str | None = None,
+        notification_message: str | None = None,
     ) -> DisplayState:
         message_to_forward = None
         with self._lock:
@@ -98,7 +99,7 @@ class DisplayController:
             if message is not None:
                 self._state.message = message
                 if message:
-                    message_to_forward = message
+                    message_to_forward = notification_message or message
 
             self._refresh_override_until()
 
