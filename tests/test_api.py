@@ -2,8 +2,11 @@ import json
 import logging
 from threading import Thread
 from unittest import TestCase
+from unittest.mock import patch
 
+from inkypal.ai import AIResponse
 from inkypal.api import ROOT_ENDPOINTS, make_server
+from inkypal.config import AIConfig
 from inkypal.display import DisplayController, DisplayState
 
 
@@ -196,3 +199,82 @@ class ApiTests(TestCase):
 
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["face"], "look_center")
+
+    def test_message_endpoint_transforms_content_when_ai_configured(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        ai_config = AIConfig(base_url="http://localhost", api_key="key", model="model")
+        server = make_server(controller, host="127.0.0.1", port=0, ai_config=ai_config)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/message",
+                data=json.dumps({"content": "raw update"}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with patch(
+                "inkypal.ai.transform_message",
+                return_value=AIResponse(message="friendly update", face="excited"),
+            ) as transform_message:
+                with urllib.request.urlopen(request) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        transform_message.assert_called_once_with("raw update", ai_config)
+        self.assertEqual(payload["face"], "excited")
+        self.assertEqual(payload["message"], "friendly update")
+
+    def test_message_endpoint_bypass_ai_shows_raw_content(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        ai_config = AIConfig(base_url="http://localhost", api_key="key", model="model")
+        server = make_server(controller, host="127.0.0.1", port=0, ai_config=ai_config)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/message",
+                data=json.dumps({"content": "raw update", "bypass_ai": True}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with patch("inkypal.ai.transform_message") as transform_message:
+                with urllib.request.urlopen(request) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        transform_message.assert_not_called()
+        self.assertEqual(payload["face"], "look_center")
+        self.assertEqual(payload["message"], "raw update")

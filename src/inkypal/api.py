@@ -108,6 +108,7 @@ def make_server(
 
             face = payload.get("face")
             content = payload.get("content")
+            bypass_ai = payload.get("bypass_ai") is True
 
             # Discard unknown user face so the AI can choose instead
             if face is not None:
@@ -121,7 +122,7 @@ def make_server(
                 return
 
             original_content = content
-            if content and ai_config is not None:
+            if content and ai_config is not None and not bypass_ai:
                 from inkypal.ai import transform_message
 
                 ai_result = transform_message(content, ai_config)
