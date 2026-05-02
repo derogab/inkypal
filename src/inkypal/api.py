@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 from http import HTTPStatus
@@ -52,11 +53,15 @@ def make_server(
     host: str = "0.0.0.0",
     port: int = 0,
     ai_config: AIConfig | None = None,
+    api_key: str | None = None,
 ) -> ThreadingHTTPServer:
     """Create an API server bound to a random port by default."""
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
+            if not self._authorized():
+                return
+
             if self.path not in ("/", "/health", "/status", "/faces"):
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
                 return
@@ -84,6 +89,9 @@ def make_server(
             self._send_json(HTTPStatus.OK, controller.status_payload())
 
         def do_POST(self) -> None:  # noqa: N802
+            if not self._authorized():
+                return
+
             if self.path == "/off":
                 controller.power_off()
                 self._send_json(
@@ -143,6 +151,21 @@ def make_server(
         def log_message(self, format: str, *args) -> None:  # noqa: A003
             _log.debug(format, *args)
 
+        def _authorized(self) -> bool:
+            if api_key is None:
+                return True
+
+            header = self.headers.get("Authorization", "")
+            scheme, _, token = header.partition(" ")
+            if scheme.lower() != "bearer" or not hmac.compare_digest(token, api_key):
+                self._send_json(
+                    HTTPStatus.UNAUTHORIZED,
+                    {"error": "unauthorized"},
+                    extra_headers={"WWW-Authenticate": 'Bearer realm="inkypal"'},
+                )
+                return False
+            return True
+
         def _read_json(self) -> dict | None:
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0:
@@ -153,11 +176,18 @@ def make_server(
             except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                 return None
 
-        def _send_json(self, status: HTTPStatus, payload: dict) -> None:
+        def _send_json(
+            self,
+            status: HTTPStatus,
+            payload: dict,
+            extra_headers: dict[str, str] | None = None,
+        ) -> None:
             body = json.dumps(payload).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
+            for name, value in (extra_headers or {}).items():
+                self.send_header(name, value)
             self.end_headers()
             self.wfile.write(body)
 

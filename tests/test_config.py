@@ -7,6 +7,7 @@ from inkypal.config import (
     DEFAULT_OPENROUTER_REFERER,
     DEFAULT_OPENROUTER_TITLE,
     get_ai_config,
+    get_api_key,
     get_configured_port,
     get_debug_mode,
     get_gotify_config,
@@ -108,6 +109,17 @@ class AIConfigTests(TestCase):
             cfg.headers["X-OpenRouter-Categories"],
             DEFAULT_OPENROUTER_CATEGORIES,
         )
+
+
+class ApiKeyTests(TestCase):
+    def test_returns_none_when_unset(self) -> None:
+        self.assertIsNone(get_api_key({}))
+
+    def test_returns_none_when_blank(self) -> None:
+        self.assertIsNone(get_api_key({"INKYPAL_API_KEY": "  "}))
+
+    def test_returns_value_when_set(self) -> None:
+        self.assertEqual(get_api_key({"INKYPAL_API_KEY": " secret "}), "secret")
 
 
 class GotifyConfigTests(TestCase):

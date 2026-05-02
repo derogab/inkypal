@@ -38,6 +38,7 @@ When AI is enabled, InkyPal automatically picks a face that matches the tone of 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `INKYPAL_PORT` | Fixed API port (optional). If not set, a random free port is used. | - |
+| `INKYPAL_API_KEY` | API bearer token (optional). When set, every API request must include `Authorization: Bearer <key>`; otherwise the API is open. | - |
 | `GOTIFY_URL` | Gotify server base URL (optional). When set together with `GOTIFY_TOKEN`, non-empty messages shown by `POST /message` are also forwarded to Gotify. | - |
 | `GOTIFY_TOKEN` | Gotify application token (optional). Used together with `GOTIFY_URL` to forward displayed messages to Gotify. | - |
 | `OPENAI_API_KEY` | API key to enable AI message transformation (optional). When set, content sent to `POST /message` is rewritten into a short friendly sentence before being displayed. Any OpenAI-compatible v1 provider works ([OpenRouter](https://openrouter.ai), OpenAI, local LLMs, etc.). | - |
@@ -78,6 +79,9 @@ Create `/etc/inkypal.env`:
 sudo tee /etc/inkypal.env >/dev/null <<'EOF'
 # Optional: set a fixed API port instead of a random one.
 # INKYPAL_PORT=8080
+
+# Optional: require an API bearer token on every request.
+# INKYPAL_API_KEY=change-me
 
 # Optional: forward displayed messages to Gotify.
 # GOTIFY_URL=https://push.example.com
@@ -142,6 +146,20 @@ sudo journalctl -u inkypal@$(whoami).service -n 20 --no-pager
 When `InkyPal` starts, it listens on a random local port by default, shows the IP and port on the display, and is meant to be controlled through the API.
 
 If `INKYPAL_PORT` is set in the service environment, that port is used instead of a random one.
+
+### Authentication
+
+When `INKYPAL_API_KEY` is set, every request must include an [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750) bearer token:
+
+```
+Authorization: Bearer <key>
+```
+
+Requests without a valid token are rejected with `401 Unauthorized` and a `WWW-Authenticate: Bearer` response header. When the variable is unset, the API is open.
+
+```bash
+curl -H "Authorization: Bearer $INKYPAL_API_KEY" http://PI_IP:PORT/status
+```
 
 ### GET /
 
