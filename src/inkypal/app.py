@@ -9,7 +9,7 @@ from threading import Event, Thread
 from time import monotonic
 
 from inkypal.api import make_server
-from inkypal.config import IDLE_ANIMATION_SECONDS, UPDATE_CHECK_INTERVAL_SECONDS, get_ai_config, get_configured_port, get_debug_mode, get_gotify_config
+from inkypal.config import IDLE_ANIMATION_SECONDS, UPDATE_CHECK_INTERVAL_SECONDS, get_ai_config, get_api_key, get_configured_port, get_debug_mode, get_gotify_config
 from inkypal.display import DisplayController, DisplayState
 from inkypal.faces import IDLE_FACES, resolve_face
 from inkypal.gotify import send_message
@@ -45,6 +45,7 @@ def main() -> int:
     port = get_configured_port()
     ai_config = get_ai_config()
     gotify_config = get_gotify_config()
+    api_key = get_api_key()
     epd = EPD()
     controller = DisplayController(
         epd=epd,
@@ -62,7 +63,7 @@ def main() -> int:
         ),
     )
 
-    server = make_server(controller, port=port, ai_config=ai_config)
+    server = make_server(controller, port=port, ai_config=ai_config, api_key=api_key)
     controller.state.port = server.server_address[1]
     stop_event = Event()
     idle_thread = Thread(target=run_idle_loop, args=(controller, stop_event), daemon=True)

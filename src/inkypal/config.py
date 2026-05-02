@@ -51,6 +51,14 @@ def get_configured_port(env: Mapping[str, str] | None = None) -> int:
     return parse_port(env.get("INKYPAL_PORT"))
 
 
+def get_api_key(env: Mapping[str, str] | None = None) -> str | None:
+    """Read the optional API bearer token from the environment."""
+    if env is None:
+        env = os.environ
+    api_key = env.get("INKYPAL_API_KEY", "").strip()
+    return api_key or None
+
+
 @dataclass(frozen=True)
 class AIConfig:
     base_url: str

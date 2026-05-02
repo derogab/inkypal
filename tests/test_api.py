@@ -241,6 +241,105 @@ class ApiTests(TestCase):
         self.assertEqual(payload["face"], "excited")
         self.assertEqual(payload["message"], "friendly update")
 
+    def test_requests_without_api_key_are_rejected_when_configured(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0, api_key="secret")
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(f"http://127.0.0.1:{controller.state.port}/status")
+            self.assertEqual(ctx.exception.code, 401)
+            self.assertIn("Bearer", ctx.exception.headers.get("WWW-Authenticate", ""))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+    def test_requests_with_wrong_api_key_are_rejected(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0, api_key="secret")
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/status",
+                headers={"Authorization": "Bearer wrong"},
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(request)
+            self.assertEqual(ctx.exception.code, 401)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+    def test_requests_with_correct_api_key_are_accepted(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0, api_key="secret")
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/message",
+                data=json.dumps({"face": "love", "content": "Text Example"}).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer secret",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(request) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(payload["face"], "love")
+        self.assertEqual(payload["message"], "Text Example")
+
     def test_message_endpoint_bypass_ai_shows_raw_content(self) -> None:
         controller = DisplayController(
             FakeEpd(),
