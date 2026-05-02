@@ -193,8 +193,9 @@ JSON body fields:
 
 - `face` - optional built-in face name
 - `content` - optional message shown below the face
+- `bypass_ai` - optional boolean; set to `true` to show `content` directly even when AI is configured
 
-When AI is configured (see `OPENAI_API_KEY` above), the `content` value is automatically transformed into a short friendly sentence before being displayed. If AI is not configured, the raw content is shown as-is.
+When AI is configured (see `OPENAI_API_KEY` above), the `content` value is automatically transformed into a short friendly sentence before being displayed. Set `bypass_ai` to `true`, or leave AI unconfigured, to show the raw content as-is.
 
 When `GOTIFY_URL` and `GOTIFY_TOKEN` are both configured, the final non-empty message shown on the display is also forwarded to Gotify. If AI is enabled, Gotify receives the transformed display text.
 
