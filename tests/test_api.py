@@ -378,7 +378,7 @@ class ApiTests(TestCase):
         self.assertEqual(payload["face"], "look_center")
         self.assertEqual(payload["message"], "raw update")
 
-    def test_mcp_initialize_and_tools_list_exposes_send_message_only(self) -> None:
+    def test_mcp_initialize_and_tools_list_exposes_send_to_inkypal_only(self) -> None:
         controller = DisplayController(
             FakeEpd(),
             DisplayState(
@@ -454,7 +454,7 @@ class ApiTests(TestCase):
         self.assertIn("e-paper hardware", server_description)
         self.assertIn("writable face", server_description)
         tools = tools_payload["result"]["tools"]
-        self.assertEqual([tool["name"] for tool in tools], ["send_message"])
+        self.assertEqual([tool["name"] for tool in tools], ["send_to_inkypal"])
         self.assertIn("hardware display", tools[0]["description"])
         self.assertIn("few words", tools[0]["description"])
         self.assertEqual(
@@ -470,7 +470,7 @@ class ApiTests(TestCase):
             tools[0]["inputSchema"]["properties"]["content"]["description"],
         )
 
-    def test_mcp_send_message_tool_updates_face_and_content(self) -> None:
+    def test_mcp_send_to_inkypal_tool_updates_face_and_content(self) -> None:
         controller = DisplayController(
             FakeEpd(),
             DisplayState(
@@ -497,7 +497,7 @@ class ApiTests(TestCase):
                         "id": 1,
                         "method": "tools/call",
                         "params": {
-                            "name": "send_message",
+                            "name": "send_to_inkypal",
                             "arguments": {
                                 "face": "love",
                                 "content": "MCP update",
@@ -521,7 +521,7 @@ class ApiTests(TestCase):
         self.assertEqual(controller.state.face, "love")
         self.assertEqual(controller.state.message, "MCP update")
 
-    def test_mcp_send_message_tool_bypasses_ai_transformation(self) -> None:
+    def test_mcp_send_to_inkypal_tool_bypasses_ai_transformation(self) -> None:
         controller = DisplayController(
             FakeEpd(),
             DisplayState(
@@ -549,7 +549,7 @@ class ApiTests(TestCase):
                         "id": 1,
                         "method": "tools/call",
                         "params": {
-                            "name": "send_message",
+                            "name": "send_to_inkypal",
                             "arguments": {
                                 "face": "love",
                                 "content": "raw MCP update",
@@ -578,7 +578,7 @@ class ApiTests(TestCase):
         self.assertEqual(controller.state.face, "love")
         self.assertEqual(controller.state.message, "raw MCP update")
 
-    def test_mcp_send_message_tool_reports_unknown_face_without_update(self) -> None:
+    def test_mcp_send_to_inkypal_tool_reports_unknown_face_without_update(self) -> None:
         controller = DisplayController(
             FakeEpd(),
             DisplayState(
@@ -605,7 +605,7 @@ class ApiTests(TestCase):
                         "id": 1,
                         "method": "tools/call",
                         "params": {
-                            "name": "send_message",
+                            "name": "send_to_inkypal",
                             "arguments": {
                                 "face": "missing",
                                 "content": "MCP update",
@@ -628,7 +628,7 @@ class ApiTests(TestCase):
         self.assertEqual(controller.state.face, "look_center")
         self.assertEqual(controller.state.message, "")
 
-    def test_mcp_send_message_tool_reports_empty_face_without_update(self) -> None:
+    def test_mcp_send_to_inkypal_tool_reports_empty_face_without_update(self) -> None:
         controller = DisplayController(
             FakeEpd(),
             DisplayState(
@@ -655,7 +655,7 @@ class ApiTests(TestCase):
                         "id": 1,
                         "method": "tools/call",
                         "params": {
-                            "name": "send_message",
+                            "name": "send_to_inkypal",
                             "arguments": {
                                 "face": "",
                                 "content": "MCP update",
@@ -776,5 +776,5 @@ class ApiTests(TestCase):
 
         self.assertEqual(
             [tool["name"] for tool in payload["result"]["tools"]],
-            ["send_message"],
+            ["send_to_inkypal"],
         )

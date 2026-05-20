@@ -244,7 +244,7 @@ InkyPal also exposes a remote Streamable HTTP MCP server at `/mcp`.
 It has one tool:
 
 ```text
-send_message(face, content)
+send_to_inkypal(face, content)
 ```
 
 The `face` argument must be a built-in face name from `GET /faces`, and `content` is shown below the face. MCP tool calls update the display directly and do not run the optional AI message transformation.

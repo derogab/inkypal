@@ -11,7 +11,7 @@ from inkypal.faces import list_faces
 
 PROTOCOL_VERSION = "2025-11-25"
 SUPPORTED_PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26")
-TOOL_NAME = "send_message"
+TOOL_NAME = "send_to_inkypal"
 
 
 @dataclass(frozen=True)
@@ -151,7 +151,7 @@ def tool_definition() -> dict[str, Any]:
     face_list = ", ".join(faces)
     return {
         "name": TOOL_NAME,
-        "title": "Send Message",
+        "title": "Send To InkyPal",
         "description": (
             "Write a short update on the InkyPal e-paper hardware display. "
             "The screen shows one face and a brief message; choose a face from "
