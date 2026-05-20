@@ -521,6 +521,63 @@ class ApiTests(TestCase):
         self.assertEqual(controller.state.face, "love")
         self.assertEqual(controller.state.message, "MCP update")
 
+    def test_mcp_send_message_tool_bypasses_ai_transformation(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        ai_config = AIConfig(base_url="http://localhost", api_key="key", model="model")
+        server = make_server(controller, host="127.0.0.1", port=0, ai_config=ai_config)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "send_message",
+                            "arguments": {
+                                "face": "love",
+                                "content": "raw MCP update",
+                            },
+                        },
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with patch("inkypal.ai.transform_message") as transform_message:
+                with urllib.request.urlopen(request) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        transform_message.assert_not_called()
+        self.assertFalse(payload["result"]["isError"])
+        self.assertEqual(payload["result"]["structuredContent"]["face"], "love")
+        self.assertEqual(
+            payload["result"]["structuredContent"]["message"],
+            "raw MCP update",
+        )
+        self.assertEqual(controller.state.face, "love")
+        self.assertEqual(controller.state.message, "raw MCP update")
+
     def test_mcp_send_message_tool_reports_unknown_face_without_update(self) -> None:
         controller = DisplayController(
             FakeEpd(),
