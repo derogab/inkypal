@@ -450,8 +450,13 @@ class ApiTests(TestCase):
             initialize_payload["result"]["capabilities"],
             {"tools": {"listChanged": False}},
         )
+        server_description = initialize_payload["result"]["serverInfo"]["description"]
+        self.assertIn("e-paper hardware", server_description)
+        self.assertIn("writable face", server_description)
         tools = tools_payload["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools], ["send_message"])
+        self.assertIn("hardware display", tools[0]["description"])
+        self.assertIn("few words", tools[0]["description"])
         self.assertEqual(
             tools[0]["inputSchema"]["required"],
             ["face", "content"],
@@ -459,6 +464,10 @@ class ApiTests(TestCase):
         self.assertIn(
             "love",
             tools[0]["inputSchema"]["properties"]["face"]["description"],
+        )
+        self.assertIn(
+            "small",
+            tools[0]["inputSchema"]["properties"]["content"]["description"],
         )
 
     def test_mcp_send_message_tool_updates_face_and_content(self) -> None:

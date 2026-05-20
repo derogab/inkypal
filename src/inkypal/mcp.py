@@ -148,23 +148,32 @@ def tool_error(message: str) -> dict[str, Any]:
 
 def tool_definition() -> dict[str, Any]:
     faces = list_faces()
+    face_list = ", ".join(faces)
     return {
         "name": TOOL_NAME,
         "title": "Send Message",
-        "description": "Update the InkyPal display with a built-in face and message content.",
+        "description": (
+            "Write a short update on the InkyPal e-paper hardware display. "
+            "The screen shows one face and a brief message; choose a face from "
+            f"{face_list}, and keep content to a few words or one short sentence."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "face": {
                     "type": "string",
                     "description": "Built-in face name to show. Allowed values: "
-                    + ", ".join(faces)
+                    + face_list
                     + ".",
                     "enum": faces,
                 },
                 "content": {
                     "type": "string",
-                    "description": "Message text to show below the face.",
+                    "description": (
+                        "Brief message text to show below the face. "
+                        "Use only a few words or one short sentence because the "
+                        "e-paper display is small."
+                    ),
                 },
             },
             "required": ["face", "content"],
@@ -186,7 +195,11 @@ def initialize_result(requested_version: object) -> dict[str, Any]:
             "name": "inkypal",
             "title": "InkyPal",
             "version": __version__,
-            "description": "A tiny smart companion on e-ink",
+            "description": (
+                "InkyPal is a tiny Raspberry Pi e-paper hardware companion. "
+                "It has a small display that shows one writable face and a few "
+                "words of message text."
+            ),
         },
     }
 
