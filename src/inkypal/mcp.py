@@ -7,7 +7,7 @@ from http import HTTPStatus
 from typing import Any
 
 from inkypal import __version__
-from inkypal.faces import list_faces, resolve_face
+from inkypal.faces import list_faces
 
 PROTOCOL_VERSION = "2025-11-25"
 SUPPORTED_PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26")
@@ -147,6 +147,7 @@ def tool_error(message: str) -> dict[str, Any]:
 
 
 def tool_definition() -> dict[str, Any]:
+    faces = list_faces()
     return {
         "name": TOOL_NAME,
         "title": "Send Message",
@@ -156,8 +157,10 @@ def tool_definition() -> dict[str, Any]:
             "properties": {
                 "face": {
                     "type": "string",
-                    "description": "Built-in face name to show.",
-                    "enum": list_faces(),
+                    "description": "Built-in face name to show. Allowed values: "
+                    + ", ".join(faces)
+                    + ".",
+                    "enum": faces,
                 },
                 "content": {
                     "type": "string",
@@ -211,13 +214,12 @@ def handle_tool_call(controller, message_id: str | int, params: object) -> dict[
             tool_error("Invalid arguments: face and content must be strings."),
         )
 
-    try:
-        resolve_face(face)
-    except ValueError:
+    faces = list_faces()
+    if face not in faces:
         return jsonrpc_result(
             message_id,
             tool_error(
-                "Unknown face. Use one of: " + ", ".join(list_faces()) + "."
+                "Unknown face. Use one of: " + ", ".join(faces) + "."
             ),
         )
 

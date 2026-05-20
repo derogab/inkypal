@@ -456,6 +456,10 @@ class ApiTests(TestCase):
             tools[0]["inputSchema"]["required"],
             ["face", "content"],
         )
+        self.assertIn(
+            "love",
+            tools[0]["inputSchema"]["properties"]["face"]["description"],
+        )
 
     def test_mcp_send_message_tool_updates_face_and_content(self) -> None:
         controller = DisplayController(
@@ -538,6 +542,56 @@ class ApiTests(TestCase):
                             "name": "send_message",
                             "arguments": {
                                 "face": "missing",
+                                "content": "MCP update",
+                            },
+                        },
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertTrue(payload["result"]["isError"])
+        self.assertIn("Unknown face", payload["result"]["content"][0]["text"])
+        self.assertEqual(controller.state.face, "look_center")
+        self.assertEqual(controller.state.message, "")
+
+    def test_mcp_send_message_tool_reports_empty_face_without_update(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "send_message",
+                            "arguments": {
+                                "face": "",
                                 "content": "MCP update",
                             },
                         },
