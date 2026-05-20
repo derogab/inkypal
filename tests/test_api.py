@@ -377,3 +377,284 @@ class ApiTests(TestCase):
         transform_message.assert_not_called()
         self.assertEqual(payload["face"], "look_center")
         self.assertEqual(payload["message"], "raw update")
+
+    def test_mcp_initialize_and_tools_list_exposes_send_message_only(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            initialize = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "initialize",
+                        "params": {
+                            "protocolVersion": "2025-11-25",
+                            "capabilities": {},
+                            "clientInfo": {"name": "test-client", "version": "1.0"},
+                        },
+                    }
+                ).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(initialize) as response:
+                initialize_payload = json.loads(response.read().decode("utf-8"))
+
+            tools_list = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 2,
+                        "method": "tools/list",
+                    }
+                ).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "MCP-Protocol-Version": "2025-11-25",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(tools_list) as response:
+                tools_payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(
+            initialize_payload["result"]["protocolVersion"], "2025-11-25"
+        )
+        self.assertEqual(
+            initialize_payload["result"]["capabilities"],
+            {"tools": {"listChanged": False}},
+        )
+        tools = tools_payload["result"]["tools"]
+        self.assertEqual([tool["name"] for tool in tools], ["send_message"])
+        self.assertEqual(
+            tools[0]["inputSchema"]["required"],
+            ["face", "content"],
+        )
+
+    def test_mcp_send_message_tool_updates_face_and_content(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "send_message",
+                            "arguments": {
+                                "face": "love",
+                                "content": "MCP update",
+                            },
+                        },
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertFalse(payload["result"]["isError"])
+        self.assertEqual(payload["result"]["structuredContent"]["face"], "love")
+        self.assertEqual(payload["result"]["structuredContent"]["message"], "MCP update")
+        self.assertEqual(controller.state.face, "love")
+        self.assertEqual(controller.state.message, "MCP update")
+
+    def test_mcp_send_message_tool_reports_unknown_face_without_update(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "send_message",
+                            "arguments": {
+                                "face": "missing",
+                                "content": "MCP update",
+                            },
+                        },
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertTrue(payload["result"]["isError"])
+        self.assertIn("Unknown face", payload["result"]["content"][0]["text"])
+        self.assertEqual(controller.state.face, "look_center")
+        self.assertEqual(controller.state.message, "")
+
+    def test_mcp_initialized_notification_is_accepted(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "notifications/initialized",
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request) as response:
+                status = response.status
+                body = response.read()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(status, 202)
+        self.assertEqual(body, b"")
+
+    def test_mcp_endpoint_uses_api_key_authentication(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0, api_key="secret")
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            body = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "tools/list",
+                }
+            ).encode("utf-8")
+            url = f"http://127.0.0.1:{controller.state.port}/mcp"
+
+            unauthenticated = urllib.request.Request(
+                url,
+                data=body,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(unauthenticated)
+            self.assertEqual(ctx.exception.code, 401)
+
+            authenticated = urllib.request.Request(
+                url,
+                data=body,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer secret",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(authenticated) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(
+            [tool["name"] for tool in payload["result"]["tools"]],
+            ["send_message"],
+        )
