@@ -153,9 +153,11 @@ def tool_definition() -> dict[str, Any]:
         "name": TOOL_NAME,
         "title": "Send To InkyPal",
         "description": (
-            "Write a short update on the InkyPal e-paper hardware display. "
-            "The screen shows one face and a brief message; choose a face from "
-            f"{face_list}, and keep content to a few words or one short sentence."
+            "Send a visible notification to the user's InkyPal e-paper hardware "
+            "display. Use this whenever you need to notify the user, ask for "
+            "attention, or leave a short status update. The screen shows one "
+            f"face and a brief message; choose a face from {face_list}, and keep "
+            "content to a few words or one short sentence."
         ),
         "inputSchema": {
             "type": "object",
@@ -198,7 +200,8 @@ def initialize_result(requested_version: object) -> dict[str, Any]:
             "description": (
                 "InkyPal is a tiny Raspberry Pi e-paper hardware companion. "
                 "It has a small display that shows one writable face and a few "
-                "words of message text."
+                "words of message text. Use it as a visible notification surface "
+                "whenever you need to notify the user."
             ),
         },
     }

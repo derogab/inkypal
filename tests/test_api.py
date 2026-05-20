@@ -453,9 +453,12 @@ class ApiTests(TestCase):
         server_description = initialize_payload["result"]["serverInfo"]["description"]
         self.assertIn("e-paper hardware", server_description)
         self.assertIn("writable face", server_description)
+        self.assertIn("notify the user", server_description)
         tools = tools_payload["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools], ["send_to_inkypal"])
+        self.assertIn("visible notification", tools[0]["description"])
         self.assertIn("hardware display", tools[0]["description"])
+        self.assertIn("notify the user", tools[0]["description"])
         self.assertIn("few words", tools[0]["description"])
         self.assertEqual(
             tools[0]["inputSchema"]["required"],

@@ -247,7 +247,7 @@ It has one tool:
 send_to_inkypal(face, content)
 ```
 
-The `face` argument must be a built-in face name from `GET /faces`, and `content` is shown below the face. MCP tool calls update the display directly and do not run the optional AI message transformation.
+Use this tool when an agent needs to notify the user, ask for attention, or leave a short status update. The `face` argument must be a built-in face name from `GET /faces`, and `content` is shown below the face. MCP tool calls update the display directly and do not run the optional AI message transformation.
 
 When `INKYPAL_API_KEY` is set, MCP clients must use the same bearer token as the HTTP API:
 
