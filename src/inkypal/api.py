@@ -54,6 +54,12 @@ ROOT_ENDPOINTS = [
 
 _log = logging.getLogger(__name__)
 
+_MCP_ALLOWED_METHODS = "GET, POST, OPTIONS"
+_MCP_DEFAULT_ALLOWED_HEADERS = (
+    "Authorization, Content-Type, Accept, MCP-Protocol-Version, Mcp-Session-Id"
+)
+_MCP_PREFLIGHT_MAX_AGE = "86400"
+
 
 def make_server(
     controller,
@@ -73,9 +79,10 @@ def make_server(
                 if not self._valid_mcp_origin():
                     self._send_mcp_response(mcp.invalid_origin_response())
                     return
+                extra_headers = {"Allow": "POST", **self._mcp_cors_headers()}
                 self._send_empty(
                     HTTPStatus.METHOD_NOT_ALLOWED,
-                    extra_headers={"Allow": "POST"},
+                    extra_headers=extra_headers,
                 )
                 return
 
@@ -104,6 +111,38 @@ def make_server(
                 return
 
             self._send_json(HTTPStatus.OK, controller.status_payload())
+
+        def do_OPTIONS(self) -> None:  # noqa: N802
+            if self.path != "/mcp":
+                self._send_empty(HTTPStatus.METHOD_NOT_ALLOWED)
+                return
+
+            if not self._valid_mcp_origin():
+                self._send_mcp_response(mcp.invalid_origin_response())
+                return
+
+            origin = self.headers.get("Origin")
+            if not origin:
+                self._send_empty(
+                    HTTPStatus.NO_CONTENT,
+                    extra_headers={"Allow": _MCP_ALLOWED_METHODS},
+                )
+                return
+
+            request_headers = self.headers.get(
+                "Access-Control-Request-Headers",
+                _MCP_DEFAULT_ALLOWED_HEADERS,
+            )
+            self._send_empty(
+                HTTPStatus.NO_CONTENT,
+                extra_headers={
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Methods": _MCP_ALLOWED_METHODS,
+                    "Access-Control-Allow-Headers": request_headers,
+                    "Access-Control-Max-Age": _MCP_PREFLIGHT_MAX_AGE,
+                    "Vary": "Origin, Access-Control-Request-Headers",
+                },
+            )
 
         def do_POST(self) -> None:  # noqa: N802
             if not self._authorized():
@@ -228,6 +267,15 @@ def make_server(
             allowed_hosts = {controller.state.host, "localhost", "127.0.0.1", "::1"}
             return origin_host.lower() in {host.lower() for host in allowed_hosts}
 
+        def _mcp_cors_headers(self) -> dict[str, str]:
+            origin = self.headers.get("Origin")
+            if not origin or not self._valid_mcp_origin():
+                return {}
+            return {
+                "Access-Control-Allow-Origin": origin,
+                "Vary": "Origin",
+            }
+
         def _send_json(
             self,
             status: HTTPStatus,
@@ -244,13 +292,14 @@ def make_server(
             self.wfile.write(body)
 
         def _send_mcp_response(self, response: mcp.MCPResponse) -> None:
+            headers = {**response.headers, **self._mcp_cors_headers()}
             if response.payload is None:
-                self._send_empty(response.status, extra_headers=response.headers)
+                self._send_empty(response.status, extra_headers=headers)
                 return
             self._send_json(
                 response.status,
                 response.payload,
-                extra_headers=response.headers,
+                extra_headers=headers,
             )
 
         def _send_empty(
