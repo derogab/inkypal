@@ -7,7 +7,9 @@ import json
 import logging
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlparse
 
+from inkypal import mcp
 from inkypal.config import AIConfig
 from inkypal.faces import list_faces, resolve_face
 
@@ -42,6 +44,11 @@ ROOT_ENDPOINTS = [
         "path": "/off",
         "description": "Clear the display to white and pause idle animation",
     },
+    {
+        "method": "POST",
+        "path": "/mcp",
+        "description": "MCP endpoint",
+    },
 ]
 
 
@@ -60,6 +67,16 @@ def make_server(
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
             if not self._authorized():
+                return
+
+            if self.path == "/mcp":
+                if not self._valid_mcp_origin():
+                    self._send_mcp_response(mcp.invalid_origin_response())
+                    return
+                self._send_empty(
+                    HTTPStatus.METHOD_NOT_ALLOWED,
+                    extra_headers={"Allow": "POST"},
+                )
                 return
 
             if self.path not in ("/", "/health", "/status", "/faces"):
@@ -103,6 +120,10 @@ def make_server(
                         "port": controller.state.port,
                     },
                 )
+                return
+
+            if self.path == "/mcp":
+                self._handle_mcp()
                 return
 
             if self.path != "/message":
@@ -176,6 +197,37 @@ def make_server(
             except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                 return None
 
+        def _handle_mcp(self) -> None:
+            if not self._valid_mcp_origin():
+                self._send_mcp_response(mcp.invalid_origin_response())
+                return
+
+            payload = self._read_json()
+            if payload is None:
+                self._send_mcp_response(mcp.parse_error_response())
+                return
+
+            self._send_mcp_response(
+                mcp.handle_request(
+                    payload,
+                    controller=controller,
+                    protocol_version=self.headers.get("MCP-Protocol-Version"),
+                )
+            )
+
+        def _valid_mcp_origin(self) -> bool:
+            origin = self.headers.get("Origin")
+            if not origin:
+                return True
+
+            parsed = urlparse(origin)
+            origin_host = parsed.hostname
+            if origin_host is None:
+                return False
+
+            allowed_hosts = {controller.state.host, "localhost", "127.0.0.1", "::1"}
+            return origin_host.lower() in {host.lower() for host in allowed_hosts}
+
         def _send_json(
             self,
             status: HTTPStatus,
@@ -190,5 +242,26 @@ def make_server(
                 self.send_header(name, value)
             self.end_headers()
             self.wfile.write(body)
+
+        def _send_mcp_response(self, response: mcp.MCPResponse) -> None:
+            if response.payload is None:
+                self._send_empty(response.status, extra_headers=response.headers)
+                return
+            self._send_json(
+                response.status,
+                response.payload,
+                extra_headers=response.headers,
+            )
+
+        def _send_empty(
+            self,
+            status: HTTPStatus,
+            extra_headers: dict[str, str] | None = None,
+        ) -> None:
+            self.send_response(status)
+            self.send_header("Content-Length", "0")
+            for name, value in (extra_headers or {}).items():
+                self.send_header(name, value)
+            self.end_headers()
 
     return ThreadingHTTPServer((host, port), Handler)
