@@ -54,7 +54,7 @@ ROOT_ENDPOINTS = [
 
 _log = logging.getLogger(__name__)
 
-_MCP_ALLOWED_METHODS = "GET, POST, OPTIONS"
+_MCP_ALLOWED_METHODS = "POST, OPTIONS"
 _MCP_DEFAULT_ALLOWED_HEADERS = (
     "Authorization, Content-Type, Accept, MCP-Protocol-Version, Mcp-Session-Id"
 )
@@ -218,10 +218,13 @@ def make_server(
             header = self.headers.get("Authorization", "")
             scheme, _, token = header.partition(" ")
             if scheme.lower() != "bearer" or not hmac.compare_digest(token, api_key):
+                extra_headers = {"WWW-Authenticate": 'Bearer realm="inkypal"'}
+                if self.path == "/mcp":
+                    extra_headers.update(self._mcp_cors_headers())
                 self._send_json(
                     HTTPStatus.UNAUTHORIZED,
                     {"error": "unauthorized"},
-                    extra_headers={"WWW-Authenticate": 'Bearer realm="inkypal"'},
+                    extra_headers=extra_headers,
                 )
                 return False
             return True
