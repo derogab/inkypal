@@ -1058,3 +1058,86 @@ class ApiTests(TestCase):
 
         self.assertEqual(ctx.exception.code, 403)
         self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_mcp_request_rejects_origin_with_invalid_port(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/list",
+                    }
+                ).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": "http://localhost:abc",
+                },
+                method="POST",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(request)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(ctx.exception.code, 403)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_mcp_get_returns_405_with_allow_post_and_options(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                method="GET",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(request)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(ctx.exception.code, 405)
+        allow = headers.get("Allow", "")
+        self.assertIn("POST", allow)
+        self.assertIn("OPTIONS", allow)

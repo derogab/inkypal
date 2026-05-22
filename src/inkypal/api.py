@@ -79,7 +79,7 @@ def make_server(
                 if not self._valid_mcp_origin():
                     self._send_mcp_response(mcp.invalid_origin_response())
                     return
-                extra_headers = {"Allow": "POST", **self._mcp_cors_headers()}
+                extra_headers = {"Allow": _MCP_ALLOWED_METHODS, **self._mcp_cors_headers()}
                 self._send_empty(
                     HTTPStatus.METHOD_NOT_ALLOWED,
                     extra_headers=extra_headers,
@@ -265,6 +265,7 @@ def make_server(
             try:
                 parsed = urlparse(origin)
                 origin_host = parsed.hostname
+                _ = parsed.port
             except ValueError:
                 return False
             if origin_host is None:
