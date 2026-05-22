@@ -262,8 +262,11 @@ def make_server(
             if not origin:
                 return True
 
-            parsed = urlparse(origin)
-            origin_host = parsed.hostname
+            try:
+                parsed = urlparse(origin)
+                origin_host = parsed.hostname
+            except ValueError:
+                return False
             if origin_host is None:
                 return False
 
