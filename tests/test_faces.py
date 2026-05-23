@@ -8,6 +8,11 @@ class FaceTests(TestCase):
         faces = list_faces()
         self.assertEqual(faces, sorted(faces))
 
+    def test_list_faces_excludes_idle_faces(self) -> None:
+        faces = list_faces()
+        for idle in IDLE_FACES:
+            self.assertNotIn(idle, faces)
+
     def test_idle_faces_are_resolvable(self) -> None:
         for face in IDLE_FACES:
             resolved_name, resolved_text = resolve_face(face)
