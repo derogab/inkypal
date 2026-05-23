@@ -25,13 +25,10 @@ It presents a friendly face, exposes a small HTTP API, and shows short updates o
 | `(^_^)` | excited | Enthusiastic or great news |
 | `(o_o)` | happy | Friendly, positive, or neutral (default) |
 | `(o3o)` | love | Heartwarming or affectionate |
-| `(O_o)` | look_left | Idle animation |
-| `(o_o)` | look_center | Idle animation |
-| `(o_O)` | look_right | Idle animation |
 | `(u_u)` | sad | Disappointing or bad news |
 | `(-_-)` | sleepy | Tired, calm, or bored |
 
-When AI is enabled, InkyPal automatically picks a face that matches the tone of its message. You can also set a face manually via the `POST /message` API.
+When AI is enabled, InkyPal automatically picks a face that matches the tone of its message. You can also set one manually via the `POST /message` API.
 
 ## Environment Variables
 

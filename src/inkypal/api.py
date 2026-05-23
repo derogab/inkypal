@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from inkypal import mcp
 from inkypal.config import AIConfig
-from inkypal.faces import list_faces, resolve_face
+from inkypal.faces import IDLE_FACES, list_faces, resolve_face
 
 ROOT_ENDPOINTS = [
     {
@@ -184,6 +184,9 @@ def make_server(
                     resolve_face(face)
                 except ValueError:
                     face = None
+                else:
+                    if face.lower() in IDLE_FACES:
+                        face = None
 
             if face is None and content is None:
                 self._send_json(HTTPStatus.OK, controller.status_payload())

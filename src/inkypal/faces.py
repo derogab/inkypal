@@ -20,8 +20,8 @@ IDLE_FACES = ("look_left", "look_center", "look_right")
 
 
 def list_faces() -> list[str]:
-    """Return available built-in face names."""
-    return sorted(FACES)
+    """Return settable built-in face names (idle faces excluded)."""
+    return sorted(key for key in FACES if key not in IDLE_FACES)
 
 
 def resolve_face(name: str | None) -> tuple[str, str]:
