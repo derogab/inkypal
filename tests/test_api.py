@@ -760,6 +760,7 @@ class ApiTests(TestCase):
             with self.assertRaises(urllib.error.HTTPError) as ctx:
                 urllib.request.urlopen(unauthenticated)
             self.assertEqual(ctx.exception.code, 401)
+            unauthenticated_headers = dict(ctx.exception.headers.items())
 
             authenticated = urllib.request.Request(
                 url,
@@ -777,7 +778,366 @@ class ApiTests(TestCase):
             server.server_close()
             thread.join(timeout=1)
 
+        self.assertNotIn("Access-Control-Allow-Origin", unauthenticated_headers)
         self.assertEqual(
             [tool["name"] for tool in payload["result"]["tools"]],
             ["send_to_inkypal"],
         )
+
+    def test_mcp_auth_failure_includes_cors_headers_for_allowed_origin(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0, api_key="secret")
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/list",
+                    }
+                ).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": "http://localhost:2276",
+                    "Authorization": "Bearer stale",
+                },
+                method="POST",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(request)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(ctx.exception.code, 401)
+        self.assertEqual(
+            headers.get("Access-Control-Allow-Origin"), "http://localhost:2276"
+        )
+        self.assertIn("Origin", headers.get("Vary", ""))
+        self.assertIn("Bearer", headers.get("WWW-Authenticate", ""))
+
+    def test_mcp_preflight_returns_cors_headers_for_allowed_origin(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            preflight = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                headers={
+                    "Origin": "http://localhost:2276",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "authorization, content-type",
+                },
+                method="OPTIONS",
+            )
+            with urllib.request.urlopen(preflight) as response:
+                status = response.status
+                headers = dict(response.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(status, 204)
+        self.assertEqual(
+            headers.get("Access-Control-Allow-Origin"), "http://localhost:2276"
+        )
+        self.assertIn("POST", headers.get("Access-Control-Allow-Methods", ""))
+        self.assertIn("OPTIONS", headers.get("Access-Control-Allow-Methods", ""))
+        self.assertNotIn("GET", headers.get("Access-Control-Allow-Methods", ""))
+        self.assertIn(
+            "authorization",
+            headers.get("Access-Control-Allow-Headers", "").lower(),
+        )
+        self.assertIn(
+            "content-type",
+            headers.get("Access-Control-Allow-Headers", "").lower(),
+        )
+        self.assertEqual(headers.get("Access-Control-Max-Age"), "86400")
+
+    def test_mcp_response_includes_cors_headers_for_allowed_origin(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/list",
+                    }
+                ).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": "http://localhost:2276",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(request) as response:
+                headers = dict(response.headers.items())
+                response.read()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(
+            headers.get("Access-Control-Allow-Origin"), "http://localhost:2276"
+        )
+        self.assertIn("Origin", headers.get("Vary", ""))
+
+    def test_mcp_preflight_rejects_disallowed_origin(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            preflight = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                headers={
+                    "Origin": "http://evil.example.com",
+                    "Access-Control-Request-Method": "POST",
+                },
+                method="OPTIONS",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(preflight)
+            self.assertEqual(ctx.exception.code, 403)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_mcp_request_rejects_malformed_origin(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/list",
+                    }
+                ).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": "http://[::1",
+                },
+                method="POST",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(request)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(ctx.exception.code, 403)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_mcp_preflight_rejects_malformed_origin(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            preflight = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                headers={
+                    "Origin": "http://[::1",
+                    "Access-Control-Request-Method": "POST",
+                },
+                method="OPTIONS",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(preflight)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(ctx.exception.code, 403)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_mcp_request_rejects_origin_with_invalid_port(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                data=json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/list",
+                    }
+                ).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": "http://localhost:abc",
+                },
+                method="POST",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(request)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(ctx.exception.code, 403)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_mcp_get_returns_405_with_allow_post_and_options(self) -> None:
+        controller = DisplayController(
+            FakeEpd(),
+            DisplayState(
+                face="look_center",
+                message="",
+                rotation=180,
+                host="127.0.0.1",
+                port=0,
+            ),
+        )
+        server = make_server(controller, host="127.0.0.1", port=0)
+        controller.state.port = server.server_address[1]
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            import urllib.error
+            import urllib.request
+
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{controller.state.port}/mcp",
+                method="GET",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(request)
+            headers = dict(ctx.exception.headers.items())
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+        self.assertEqual(ctx.exception.code, 405)
+        allow = headers.get("Allow", "")
+        self.assertIn("POST", allow)
+        self.assertIn("OPTIONS", allow)
