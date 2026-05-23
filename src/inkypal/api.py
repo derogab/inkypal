@@ -178,14 +178,14 @@ def make_server(
             content = payload.get("content")
             bypass_ai = payload.get("bypass_ai") is True
 
-            # Discard unknown user face so the AI can choose instead
+            # Discard unknown or idle user face so the AI can choose instead
             if face is not None:
                 try:
-                    resolve_face(face)
+                    key, _ = resolve_face(face)
                 except ValueError:
                     face = None
                 else:
-                    if face.lower() in IDLE_FACES:
+                    if key in IDLE_FACES:
                         face = None
 
             if face is None and content is None:
@@ -201,12 +201,15 @@ def make_server(
                 if face is None:
                     face = ai_result.face
 
-            # Fall back to default face if AI returned an unknown one
+            # Fall back to default face if AI returned an unknown or idle one
             if face is not None:
                 try:
-                    resolve_face(face)
+                    key, _ = resolve_face(face)
                 except ValueError:
                     face = "happy"
+                else:
+                    if key in IDLE_FACES:
+                        face = "happy"
 
             controller.update(face=face, message=content, notification_message=original_content)
             self._send_json(HTTPStatus.OK, controller.status_payload())
