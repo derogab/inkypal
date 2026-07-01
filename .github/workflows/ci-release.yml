@@ -7,7 +7,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
 
       - name: Use Python
         uses: actions/setup-python@v6
@@ -27,7 +27,7 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
 
       - name: Use Python
         uses: actions/setup-python@v6
@@ -60,7 +60,7 @@ jobs:
           - platform: linux/arm/v7
             artifact_name: inkypal-linux-armv7
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
