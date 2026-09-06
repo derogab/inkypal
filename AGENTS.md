@@ -27,6 +27,7 @@ Do not duplicate user-facing documentation from `README.md`.
 - Tests: `PYTHONPATH=src python3 -m unittest discover -s tests`
 - Agents MUST run the test suite after every code change.
 - When behavior changes, agents MUST update or add tests as needed.
+- If `$INKYPAL_HOST` is set and the Pi is reachable, append temporarily `-dev` to the version before building a binary for installation, then test it via `ssh "$INKYPAL_HOST"`.
 
 ## Runtime model
 
